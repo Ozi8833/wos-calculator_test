@@ -2388,6 +2388,81 @@ function closeAllianceMemberSelectionModal() {
   if (modal) modal.classList.remove('open');
 }
 
+// Quick Load Sample 65 Members Helper (v1.02.44 Mobile Friendly)
+function loadSample65MembersToTextarea() {
+  const textarea = document.getElementById('alliance-import-textarea');
+  if (!textarea) return;
+
+  const sampleData = `103ch,00:31
+Candy,00:20
+Ciel,00:28
+Cion,00:30
+HANA,00:30
+nagisa2,00:20
+ozi,00:29
+Ruru,00:25
+Shikky,00:31
+sympathy,00:25
+アーモンドミルク,00:30
+ｲﾝｶﾗﾏｯ,00:23
+ウィット,00:25
+えま,00:20
+おじー,00:23
+おしっきーん,00:28
+きなぽん,00:20
+ぎょぎょ,00:25
+こんもちこ,00:29
+さくまる,00:28
+さぶちゃんマソ,00:20
+さぶちゃんマン,00:31
+ちむほび,00:20
+なりもん,00:29
+にゃおち,00:28
+にゃんこまろ,00:28
+バブ大福,00:26
+はるさん,00:31
+はるしゃん,00:20
+ひなーこ,00:26
+ひなこもち,00:28
+ひまり,00:31
+ぷかぷか,00:20
+ぷらころーる,00:30
+ぷらりね,00:26
+ぺこりん,00:29
+べび大福,00:29
+ぽてまる,00:26
+まめさん,00:25
+みにはるさん,00:23
+めごらー,00:29
+めごらん,00:25
+めろにゃおち,00:28
+もち大福,00:23
+もふ大福,00:23
+やん・凡・じーん,00:20
+やんちゃんマン,00:23
+ゆゆ,00:20
+らすかりーの・ぽんてぃーぬ,00:30
+らすかる,00:23
+りょう,00:25
+リリド,00:20
+るいち,00:28
+ルッカ,00:26
+るるたん,00:20
+るるるん,00:31
+鬼嫁ちゃん,00:20
+黒大福もちみ,00:20
+新橋,00:29
+新八,00:31
+昔むかしの鬼嫁ちゃん,00:25
+白大福もちこ,00:30
+六ZERO,00:26
+和,00:26
+和菓子屋,00:30`;
+
+  textarea.value = sampleData;
+  alert('サンプル65名のデータをテキストエリアにセットしました！「📥 一括登録を実行」を押すと登録されます。');
+}
+
 // Template Download & Data Export Helpers (v1.02.30)
 function downloadAllianceTemplate(type) {
   let content = '';
