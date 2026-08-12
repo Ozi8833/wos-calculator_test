@@ -1635,6 +1635,31 @@ function loadAppSettings() {
   // Default clock controls collapsed to true if not explicitly set to false (v1.02.29)
   const isClockCollapsed = state.settings.clockControlsCollapsed !== false;
   toggleClockControls(isClockCollapsed);
+
+  // Restore simple audio mute state (v1.03.09)
+  const isAudioMuted = localStorage.getItem('wos_simple_audio_muted') === 'true';
+  setSimpleAudioMuteState(isAudioMuted);
+}
+
+// v1.03.09 Audio Mute Control for Simple Mode
+let isSimpleAudioMuted = false;
+
+function setSimpleAudioMuteState(muted) {
+  isSimpleAudioMuted = muted;
+  localStorage.setItem('wos_simple_audio_muted', muted ? 'true' : 'false');
+
+  const label = document.getElementById('label-toggle-simple-sound');
+  const icon = document.getElementById('icon-toggle-simple-sound');
+  const btn = document.getElementById('btn-toggle-simple-sound');
+
+  if (label) label.textContent = muted ? '🔇 ミュート' : '🔊 音声ON';
+  if (icon) icon.className = muted ? 'fa-solid fa-volume-xmark text-gray-400' : 'fa-solid fa-volume-high text-yellow-400';
+  if (btn) btn.className = `btn-game btn-xs ${muted ? 'btn-secondary opacity-70' : 'btn-secondary'} flex items-center gap-0.5 whitespace-nowrap px-1.5`;
+}
+
+function toggleSimpleAudioMute() {
+  initAudio();
+  setSimpleAudioMuteState(!isSimpleAudioMuted);
 }
 
 function applyPresetTheme(themeKey) {
@@ -2120,7 +2145,7 @@ function updateSimpleCountdown() {
     floatingLandTimeVal.textContent = formatTimeHHMMSS(simpleLaunchState.targetLaunchDate);
   }
 
-  // 3. Launch Deadline Countdown Display
+  // 3. Launch Deadline Countdown Display & 10s Countdown Beep Audio (v1.03.09)
   const statusLabel = document.getElementById('simple-status-label');
   const countdownVal = document.getElementById('simple-countdown-val');
   const subInfo = document.getElementById('simple-sub-info');
@@ -2129,6 +2154,21 @@ function updateSimpleCountdown() {
 
   const modeText = simpleLaunchState.statusMode === 'rally' ? '集結完了後発車' : '行軍着弾';
 
+  // 10s Countdown Audio Beep Logic
+  if (!isSimpleAudioMuted && diffSec > 0 && diffSec <= 10.05) {
+    const currentCeilSec = Math.ceil(diffSec);
+    if (simpleLaunchState.lastBeepSecond !== currentCeilSec) {
+      simpleLaunchState.lastBeepSecond = currentCeilSec;
+      if (currentCeilSec === 1) {
+        // High pitched urgent beep at 1s mark
+        playBeep(1200, 'sine', 0.25);
+      } else {
+        // Regular countdown beeps (10s ~ 2s)
+        playBeep(880, 'sine', 0.12);
+      }
+    }
+  }
+
   if (diffSec > 0) {
     statusLabel.textContent = `🔥 自分の発車ボタンを押すまで あと：`;
     statusLabel.className = "text-xs text-yellow-300 font-bold mt-2 mb-1 animate-pulse";
@@ -2136,6 +2176,12 @@ function updateSimpleCountdown() {
     countdownVal.className = "text-2xl sm:text-3xl font-black text-digital text-cyan-300 animate-pulse";
     subInfo.textContent = `相手着弾直後 (0.3秒後) に自動合わせ中 (${modeText})`;
   } else if (diffSec > -1.0) {
+    // Launch Deadline Reached (0s Window): Play Big Launch Chime once
+    if (!isSimpleAudioMuted && simpleLaunchState.lastBeepSecond !== 0) {
+      simpleLaunchState.lastBeepSecond = 0;
+      playBeep(1760, 'triangle', 0.4); // Major high chime on launch!
+    }
+
     statusLabel.textContent = "🟢 今すぐ発車せよ！！ (発車推奨ウィンドウ中)";
     statusLabel.className = "text-sm text-green-400 font-black mt-2 mb-1 animate-bounce";
     countdownVal.textContent = "00:00.0";
@@ -2147,6 +2193,7 @@ function updateSimpleCountdown() {
     delete simpleLaunchState.calcStartTime;
     delete simpleLaunchState.enemyLandDate;
     delete simpleLaunchState.targetLaunchDate;
+    delete simpleLaunchState.lastBeepSecond;
 
     statusLabel.textContent = "時間を設定して「差し込み計算スタート」を押してください";
     statusLabel.className = "text-xs text-cyan-300 font-bold mt-2 mb-1";
