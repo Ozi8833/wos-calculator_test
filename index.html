@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.02.40 GitHub Pages対応版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.02.42 試作版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -25,7 +25,7 @@
       <div class="splash-content">
         <div class="text-4xl mb-4 text-cyan-400">⚔️</div>
         <h1 class="splash-title">WHITEOUT SURVIVAL</h1>
-        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.02.40 GitHub Pages対応版</p>
+        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.02.42 試作版</p>
         <button id="btn-start" class="tap-to-start safe-text" onclick="document.getElementById('splash-screen').style.display='none'; if(typeof initAudio==='function') initAudio();">
           <i class="fa-solid fa-crosshairs mr-2"></i> TAP TO START
         </button>
@@ -260,7 +260,7 @@
         </div>
         <div id="simple-sub-info" class="text-xs text-gray-400 font-bold mt-1">相手着弾 0.3秒後 直後に自動合わせ</div>
 
-        <!-- Alliance Member Management & Multi Chat Copy Controls (v1.02.28 Unified) -->
+        <!-- Alliance Member Management & Multi Chat Copy Controls (v1.02.41 Copy Sort Mode Toggle) -->
         <div class="mt-3 pt-2.5 border-t border-cyan-500/30 space-y-2">
           <div class="flex gap-1.5">
             <button class="btn-game btn-xs btn-secondary flex-1 py-1.5 font-bold flex items-center justify-center gap-0.5 whitespace-nowrap text-[11px] sm:text-xs" onclick="openAllianceMemberModal()">
@@ -271,8 +271,21 @@
             </button>
           </div>
 
+          <!-- Copy Order Sort Mode Selection Bar -->
+          <div class="flex items-center justify-between bg-black/40 p-1.5 rounded-lg border border-yellow-500/30 text-xs">
+            <span class="text-gray-300 font-bold text-[11px] shrink-0"><i class="fa-solid fa-arrow-down-short-wide text-yellow-300 mr-1"></i>コピー順:</span>
+            <div class="flex gap-1 flex-1 justify-end">
+              <button id="btn-copy-sort-name" class="btn-game btn-xs btn-primary active py-0.5 px-2 text-[11px] font-bold whitespace-nowrap" onclick="setAllianceCopySortMode('name')">
+                🔤 あいうえお順
+              </button>
+              <button id="btn-copy-sort-time" class="btn-game btn-xs btn-secondary py-0.5 px-2 text-[11px] font-bold whitespace-nowrap" onclick="setAllianceCopySortMode('time')">
+                ⏱ 出発時間順
+              </button>
+            </div>
+          </div>
+
           <button id="btn-copy-alliance-multi-chat" class="btn-game btn-sm btn-primary w-full py-2 font-black text-xs sm:text-sm tracking-wide shadow flex items-center justify-center gap-1.5 whitespace-nowrap" onclick="copyAllianceMultiChat()">
-            <i class="fa-solid fa-copy text-yellow-300"></i> 📋 選択メンバー全員の指示をコピー (あいうえお順)
+            <i class="fa-solid fa-copy text-yellow-300"></i> <span id="label-copy-alliance-multi-chat">📋 選択メンバー全員の指示をコピー (あいうえお順)</span>
           </button>
         </div>
       </div>
@@ -518,7 +531,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.02.40 GitHub Pages対応版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.02.42 試作版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -739,7 +752,7 @@
 
         <div class="text-[11px] text-gray-400 flex justify-between items-center px-1">
           <span>選択中: <strong id="alliance-selection-selected-num" class="text-yellow-300">0</strong> / <span id="alliance-selection-total-num">0</span>名</span>
-          <span>(あいうえお順でコピーされます)</span>
+          <span id="alliance-selection-sort-hint">(あいうえお順でコピーされます)</span>
         </div>
 
         <div id="alliance-selection-list-container" class="max-h-64 overflow-y-auto space-y-1 pr-1 bg-black/40 p-2 rounded-lg border border-cyan-900/50">

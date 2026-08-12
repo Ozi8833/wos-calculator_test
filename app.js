@@ -2395,7 +2395,73 @@ function downloadAllianceTemplate(type) {
   let mimeType = '';
 
   if (type === 'csv') {
-    content = '\uFEFF名前,行軍時間\n山田,01:30\n佐藤,01:45\n田中,02:10\n';
+    content = `\uFEFF名前,行軍時間
+103ch,00:31
+Candy,00:20
+Ciel,00:28
+Cion,00:30
+HANA,00:30
+nagisa2,00:20
+ozi,00:29
+Ruru,00:25
+Shikky,00:31
+sympathy,00:25
+アーモンドミルク,00:30
+ｲﾝｶﾗﾏｯ,00:23
+ウィット,00:25
+えま,00:20
+おじー,00:23
+おしっきーん,00:28
+きなぽん,00:20
+ぎょぎょ,00:25
+こんもちこ,00:29
+さくまる,00:28
+さぶちゃんマソ,00:20
+さぶちゃんマン,00:31
+ちむほび,00:20
+なりもん,00:29
+にゃおち,00:28
+にゃんこまろ,00:28
+バブ大福,00:26
+はるさん,00:31
+はるしゃん,00:20
+ひなーこ,00:26
+ひなこもち,00:28
+ひまり,00:31
+ぷかぷか,00:20
+ぷらころーる,00:30
+ぷらりね,00:26
+ぺこりん,00:29
+べび大福,00:29
+ぽてまる,00:26
+まめさん,00:25
+みにはるさん,00:23
+めごらー,00:29
+めごらん,00:25
+めろにゃおち,00:28
+もち大福,00:23
+もふ大福,00:23
+やん・凡・じーん,00:20
+やんちゃんマン,00:23
+ゆゆ,00:20
+らすかりーの・ぽんてぃーぬ,00:30
+らすかる,00:23
+りょう,00:25
+リリド,00:20
+るいち,00:28
+ルッカ,00:26
+るるたん,00:20
+るるるん,00:31
+鬼嫁ちゃん,00:20
+黒大福もちみ,00:20
+新橋,00:29
+新八,00:31
+昔むかしの鬼嫁ちゃん,00:25
+白大福もちこ,00:30
+六ZERO,00:26
+和,00:26
+和菓子屋,00:30
+`;
     filename = 'wos_alliance_template.csv';
     mimeType = 'text/csv;charset=utf-8;';
   } else {
@@ -2403,9 +2469,71 @@ function downloadAllianceTemplate(type) {
 # 形式: 名前, 行軍時間 (MM:SS)
 # （ハッシュ記号 # から始まる行はコメントとして無視されます）
 
-山田, 01:30
-佐藤, 01:45
-田中, 02:10
+103ch,00:31
+Candy,00:20
+Ciel,00:28
+Cion,00:30
+HANA,00:30
+nagisa2,00:20
+ozi,00:29
+Ruru,00:25
+Shikky,00:31
+sympathy,00:25
+アーモンドミルク,00:30
+ｲﾝｶﾗﾏｯ,00:23
+ウィット,00:25
+えま,00:20
+おじー,00:23
+おしっきーん,00:28
+きなぽん,00:20
+ぎょぎょ,00:25
+こんもちこ,00:29
+さくまる,00:28
+さぶちゃんマソ,00:20
+さぶちゃんマン,00:31
+ちむほび,00:20
+なりもん,00:29
+にゃおち,00:28
+にゃんこまろ,00:28
+バブ大福,00:26
+はるさん,00:31
+はるしゃん,00:20
+ひなーこ,00:26
+ひなこもち,00:28
+ひまり,00:31
+ぷかぷか,00:20
+ぷらころーる,00:30
+ぷらりね,00:26
+ぺこりん,00:29
+べび大福,00:29
+ぽてまる,00:26
+まめさん,00:25
+みにはるさん,00:23
+めごらー,00:29
+めごらん,00:25
+めろにゃおち,00:28
+もち大福,00:23
+もふ大福,00:23
+やん・凡・じーん,00:20
+やんちゃんマン,00:23
+ゆゆ,00:20
+らすかりーの・ぽんてぃーぬ,00:30
+らすかる,00:23
+りょう,00:25
+リリド,00:20
+るいち,00:28
+ルッカ,00:26
+るるたん,00:20
+るるるん,00:31
+鬼嫁ちゃん,00:20
+黒大福もちみ,00:20
+新橋,00:29
+新八,00:31
+昔むかしの鬼嫁ちゃん,00:25
+白大福もちこ,00:30
+六ZERO,00:26
+和,00:26
+和菓子屋,00:30
 `;
     filename = 'wos_alliance_template.txt';
     mimeType = 'text/plain;charset=utf-8;';
@@ -2610,7 +2738,29 @@ function setAllAllianceSelection(checked) {
   renderAllianceSelectionList();
 }
 
-// Multi Mass Calculation & Copy Logic
+// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode Support: Name / Time)
+let allianceCopySortMode = localStorage.getItem('wos_alliance_copy_sort_mode') || 'name'; // 'name' or 'time'
+
+function setAllianceCopySortMode(mode) {
+  allianceCopySortMode = mode;
+  localStorage.setItem('wos_alliance_copy_sort_mode', mode);
+
+  const btnName = document.getElementById('btn-copy-sort-name');
+  const btnTime = document.getElementById('btn-copy-sort-time');
+  const labelBtn = document.getElementById('label-copy-alliance-multi-chat');
+  const hintTextElem = document.getElementById('alliance-selection-sort-hint');
+
+  if (btnName) btnName.className = `btn-game btn-xs ${mode === 'name' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
+  if (btnTime) btnTime.className = `btn-game btn-xs ${mode === 'time' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
+
+  const modeName = mode === 'name' ? 'あいうえお順' : '出発時間順';
+  if (labelBtn) {
+    labelBtn.textContent = `📋 選択メンバー全員の指示をコピー (${modeName})`;
+  }
+  if (hintTextElem) {
+    hintTextElem.textContent = `(${modeName}でコピーされます)`;
+  }
+}
 
 function copyAllianceMultiChat() {
   if (!simpleLaunchState.isCalculated || !simpleLaunchState.enemyLandDate) {
@@ -2618,27 +2768,45 @@ function copyAllianceMultiChat() {
     return;
   }
 
-  // Filter selected members & sort by Japanese Gojūon
+  // Filter selected members
   const selectedMembers = allianceMembers.filter(m => m.selected !== false);
   if (selectedMembers.length === 0) {
     alert('送信対象のメンバーが1人も選択されていません。「👥 送信選択」からメンバーにチェックを入れてください。');
     return;
   }
 
-  const sortedMembers = [...selectedMembers].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-  const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
-  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
   const enemyLandDate = simpleLaunchState.enemyLandDate;
 
-  let text = `⚔️【同盟一斉差し込み発車指示】 (${tzStr})
+  // Calculate each member's target launch date
+  const memberWithDates = selectedMembers.map(m => {
+    const targetLaunchDate = new Date(enemyLandDate.getTime() + 300 - m.marchSec * 1000);
+    return {
+      member: m,
+      targetLaunchDate: targetLaunchDate
+    };
+  });
+
+  // Sort based on current mode
+  if (allianceCopySortMode === 'time') {
+    // Sort by target launch time (earliest first)
+    memberWithDates.sort((a, b) => a.targetLaunchDate.getTime() - b.targetLaunchDate.getTime());
+  } else {
+    // Sort by Japanese Gojūon (あいうえお順)
+    memberWithDates.sort((a, b) => a.member.name.localeCompare(b.member.name, 'ja'));
+  }
+
+  const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
+  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
+  const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
+
+  let text = `⚔️【同盟一斉差し込み発車指示】 (${tzStr}・${sortModeTitle})
 🎯 相手状態: ${statusModeName} (着弾予定 ${formatTimeHHMMSS(enemyLandDate)})
 ---------------------------------
 `;
 
-  sortedMembers.forEach(m => {
-    // Enemy Land Date + 300ms - Member March Time
-    const targetLaunchDate = new Date(enemyLandDate.getTime() + 300 - m.marchSec * 1000);
-    const launchTimeStr = formatTimeHHMMSS(targetLaunchDate);
+  memberWithDates.forEach(item => {
+    const m = item.member;
+    const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
     text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr} 発車\n`;
   });
 
@@ -2646,16 +2814,20 @@ function copyAllianceMultiChat() {
 ※各自の行軍時間に合わせて自動最適化済み`;
 
   navigator.clipboard.writeText(text).then(() => {
-    alert(`選択中の同盟メンバー ${sortedMembers.length} 名分の発車指示をクリップボードにコピーしました！ (あいうえお順)`);
+    alert(`選択中の同盟メンバー ${memberWithDates.length} 名分の発車指示をクリップボードにコピーしました！ (${sortModeTitle})`);
   }).catch(err => {
     console.error('Clipboard copy error:', err);
     alert('コピーに失敗しました。');
   });
 }
 
-// Call loadAllianceMembers on init
+// Restore sort mode state on init
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadAllianceMembers);
+  document.addEventListener('DOMContentLoaded', () => {
+    loadAllianceMembers();
+    setAllianceCopySortMode(allianceCopySortMode);
+  });
 } else {
   loadAllianceMembers();
+  setAllianceCopySortMode(allianceCopySortMode);
 }
