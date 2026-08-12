@@ -764,3 +764,17 @@ header.sticky-header {
 .nav-item.active, .nav-item:active {
   color: var(--accent-color);
 }
+
+/* Timeline Row Selected Highlight (v1.03.08 Premium Static Gold Highlight) */
+.timeline-row-selected {
+  border-top: 2px solid #ffe600 !important;
+  border-bottom: 2px solid #ffe600 !important;
+  background-color: rgba(255, 230, 0, 0.25) !important;
+  box-shadow: inset 0 0 10px rgba(255, 230, 0, 0.5) !important;
+}
+
+.timeline-row-selected td {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9) !important;
+}

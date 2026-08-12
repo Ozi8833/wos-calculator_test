@@ -2165,8 +2165,9 @@ function updateSimpleCountdown() {
   updateAllianceTimeline();
 }
 
-// v1.03.00 Alliance Departure Timeline Implementation
+// v1.03.04 Alliance Departure Timeline Implementation (Selection by Name)
 let isAllianceTimelineCollapsed = false;
+let selectedTimelineMemberName = null;
 
 function toggleAllianceTimelineCard() {
   const content = document.getElementById('alliance-timeline-content');
@@ -2186,7 +2187,17 @@ function toggleAllianceTimelineCard() {
   }
 }
 
-function updateAllianceTimeline() {
+function selectTimelineRowMember(name) {
+  const encodedName = decodeURIComponent(name);
+  if (selectedTimelineMemberName === encodedName) {
+    selectedTimelineMemberName = null;
+  } else {
+    selectedTimelineMemberName = encodedName;
+  }
+  updateAllianceTimeline(true);
+}
+
+function updateAllianceTimeline(forceRender = false) {
   const selectedBadge = document.getElementById('timeline-selected-count');
   const hintElem = document.getElementById('alliance-timeline-status-hint');
   const tableContainer = document.getElementById('alliance-timeline-table-container');
@@ -2219,6 +2230,20 @@ function updateAllianceTimeline() {
 
   if (hintElem) hintElem.classList.add('hidden');
   if (tableContainer) tableContainer.classList.remove('hidden');
+
+  // If table is already populated and not forced, only toggle selected classes without overwriting DOM
+  const existingRows = tbody.querySelectorAll('tr[data-member-name]');
+  if (!forceRender && existingRows.length === selectedMembers.length) {
+    existingRows.forEach(tr => {
+      const name = tr.getAttribute('data-member-name');
+      if (name === selectedTimelineMemberName) {
+        tr.classList.add('timeline-row-selected');
+      } else {
+        tr.classList.remove('timeline-row-selected');
+      }
+    });
+    return;
+  }
 
   const enemyLandDate = simpleLaunchState.enemyLandDate;
 
@@ -2254,10 +2279,14 @@ function updateAllianceTimeline() {
       diffClass = 'text-cyan-300 font-bold';
     }
 
+    const isRowSelected = selectedTimelineMemberName === m.name;
+    const selectedClass = isRowSelected ? 'timeline-row-selected' : '';
     const rowBg = index === 0 ? 'bg-yellow-950/30' : (index % 2 === 0 ? 'bg-black/30' : 'bg-cyan-950/20');
 
+    const safeName = encodeURIComponent(m.name);
+
     html += `
-      <tr class="${rowBg} hover:bg-cyan-900/40 transition-colors">
+      <tr data-member-name="${m.name}" class="${rowBg} ${selectedClass} hover:bg-cyan-900/40 transition-colors cursor-pointer select-none" onclick="selectTimelineRowMember('${safeName}')">
         <td class="p-1.5 text-center font-bold text-gray-400 text-[10px]">${index + 1}</td>
         <td class="p-1.5 font-bold text-cyan-200 truncate max-w-[100px]">${m.name}</td>
         <td class="p-1.5 text-center text-gray-400 text-[10px]">(${formatCountdownMMSS(m.marchSec)})</td>
