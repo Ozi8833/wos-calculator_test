@@ -1628,9 +1628,9 @@ function loadAppSettings() {
     toggleCardVisibility(key, isVisible);
   });
 
-  if (state.settings.hideSimpleAdjustButtons) {
-    toggleSimpleAdjustButtons(true);
-  }
+  // Default simple adjust buttons hidden to true if not explicitly set (v1.02.43)
+  const isSimpleAdjustHidden = state.settings.hideSimpleAdjustButtons !== false;
+  toggleSimpleAdjustButtons(isSimpleAdjustHidden);
 
   // Default clock controls collapsed to true if not explicitly set to false (v1.02.29)
   const isClockCollapsed = state.settings.clockControlsCollapsed !== false;

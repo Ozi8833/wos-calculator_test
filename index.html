@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.02.42 試作版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.02.43 試作版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -25,7 +25,7 @@
       <div class="splash-content">
         <div class="text-4xl mb-4 text-cyan-400">⚔️</div>
         <h1 class="splash-title">WHITEOUT SURVIVAL</h1>
-        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.02.42 試作版</p>
+        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.02.43 試作版</p>
         <button id="btn-start" class="tap-to-start safe-text" onclick="document.getElementById('splash-screen').style.display='none'; if(typeof initAudio==='function') initAudio();">
           <i class="fa-solid fa-crosshairs mr-2"></i> TAP TO START
         </button>
@@ -168,7 +168,7 @@
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button id="btn-toggle-simple-adjust" class="btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5" onclick="toggleSimpleAdjustButtons()" title="調整ボタンの表示/非表示">
-            <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders text-cyan-400"></i> <span id="label-toggle-simple-adjust">調整隠す</span>
+            <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders"></i> <span id="label-toggle-simple-adjust">調整表示</span>
           </button>
           <span class="text-xs bg-yellow-500/20 text-yellow-300 font-bold px-2 py-0.5 rounded border border-yellow-400/40 hidden sm:inline-block whitespace-nowrap">集結/行軍 モード選択</span>
         </div>
@@ -201,8 +201,8 @@
         <input type="text" id="simple-remaining-time" class="game-input text-digital text-center font-bold text-yellow-300 text-lg" value="03:00" placeholder="03:00">
       </div>
 
-      <!-- Simple Trial Adjust & Sync Buttons Section (v1.02.05) -->
-      <div id="simple-adjust-buttons-container" class="bg-black/40 p-2 rounded-xl border border-yellow-500/30 mb-3">
+      <!-- Simple Trial Adjust & Sync Buttons Section (v1.02.43 Default Hidden) -->
+      <div id="simple-adjust-buttons-container" class="bg-black/40 p-2 rounded-xl border border-yellow-500/30 mb-3 hidden">
         <!-- Direct Sync Minutes / Seconds Buttons -->
         <div class="text-xs font-extrabold text-yellow-300 mb-1 whitespace-nowrap">🎯 残り時間 ダイレクト同期</div>
         <div class="grid grid-cols-6 gap-1 mb-1">
@@ -531,7 +531,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.02.42 試作版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.02.43 試作版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
