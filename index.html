@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.02.44 試作版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.00 正式版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -25,7 +25,7 @@
       <div class="splash-content">
         <div class="text-4xl mb-4 text-cyan-400">⚔️</div>
         <h1 class="splash-title">WHITEOUT SURVIVAL</h1>
-        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.02.44 試作版</p>
+        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.00 正式版</p>
         <button id="btn-start" class="tap-to-start safe-text" onclick="document.getElementById('splash-screen').style.display='none'; if(typeof initAudio==='function') initAudio();">
           <i class="fa-solid fa-crosshairs mr-2"></i> TAP TO START
         </button>
@@ -291,6 +291,43 @@
       </div>
     </div>
 
+    <!-- v1.03.00 New Feature: Alliance Departure Timeline Card -->
+    <div id="card-alliance-timeline" class="glass-card border-2 border-cyan-400/60 bg-cyan-950/20 my-3 shadow-xl">
+      <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2 mb-2 gap-1">
+        <div class="text-xs sm:text-sm font-black text-cyan-300 flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-timeline text-yellow-400"></i> ⏱ 同盟一斉発車タイムライン (<span id="timeline-selected-count">0</span>名)
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="btn-toggle-alliance-timeline" class="btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-2" onclick="toggleAllianceTimelineCard()" title="タイムラインの折りたたみ/展開">
+            <i id="icon-toggle-alliance-timeline" class="fa-solid fa-chevron-up text-cyan-300"></i> <span id="label-toggle-alliance-timeline">折りたたむ</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="alliance-timeline-content" class="space-y-2">
+        <div id="alliance-timeline-status-hint" class="text-xs text-yellow-300 font-bold bg-black/40 p-2 rounded-lg border border-cyan-500/30 text-center">
+          「🎯 差し込み計算スタート！」を押すとリアルタイム発車スケジュールが表示されます
+        </div>
+
+        <div id="alliance-timeline-table-container" class="max-h-72 overflow-y-auto rounded-lg border border-cyan-500/30 bg-black/50 hidden">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-cyan-950/80 sticky top-0 border-b border-cyan-500/40 text-[11px] text-cyan-300 font-bold">
+              <tr>
+                <th class="p-1.5 text-center w-8">順</th>
+                <th class="p-1.5">メンバー名</th>
+                <th class="p-1.5 text-center">行軍</th>
+                <th class="p-1.5 text-center">発車時刻</th>
+                <th class="p-1.5 text-right">最速差</th>
+              </tr>
+            </thead>
+            <tbody id="alliance-timeline-tbody" class="divide-y divide-cyan-900/40 font-mono text-[11px] text-gray-200">
+              <!-- Rendered dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Enemy Section Wrapper -->
     <div id="section-enemy-marches">
       <!-- Dynamic Enemy March Header Bar with Add Button -->
@@ -531,7 +568,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.02.44 試作版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.00 正式版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 

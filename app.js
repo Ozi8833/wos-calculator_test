@@ -2085,6 +2085,7 @@ function triggerSimpleEnemyLaunch() {
   simpleLaunchState.enemyMarchSec = enemySec;
 
   updateSimpleCountdown();
+  updateAllianceTimeline();
 }
 
 function updateSimpleCountdown() {
@@ -2160,6 +2161,113 @@ function updateSimpleCountdown() {
       remInput.value = formatCountdownMMSS(simpleLaunchState.startRemSec);
     }
   }
+
+  updateAllianceTimeline();
+}
+
+// v1.03.00 Alliance Departure Timeline Implementation
+let isAllianceTimelineCollapsed = false;
+
+function toggleAllianceTimelineCard() {
+  const content = document.getElementById('alliance-timeline-content');
+  const label = document.getElementById('label-toggle-alliance-timeline');
+  const icon = document.getElementById('icon-toggle-alliance-timeline');
+  if (!content) return;
+
+  isAllianceTimelineCollapsed = !isAllianceTimelineCollapsed;
+  if (isAllianceTimelineCollapsed) {
+    content.classList.add('hidden');
+    if (label) label.textContent = '展開する';
+    if (icon) icon.className = 'fa-solid fa-chevron-down text-cyan-300';
+  } else {
+    content.classList.remove('hidden');
+    if (label) label.textContent = '折りたたむ';
+    if (icon) icon.className = 'fa-solid fa-chevron-up text-cyan-300';
+  }
+}
+
+function updateAllianceTimeline() {
+  const selectedBadge = document.getElementById('timeline-selected-count');
+  const hintElem = document.getElementById('alliance-timeline-status-hint');
+  const tableContainer = document.getElementById('alliance-timeline-table-container');
+  const tbody = document.getElementById('alliance-timeline-tbody');
+
+  const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+  if (selectedBadge) selectedBadge.textContent = selectedMembers.length;
+
+  if (!tbody) return;
+
+  if (!simpleLaunchState.isCalculated || !simpleLaunchState.enemyLandDate) {
+    if (hintElem) {
+      hintElem.classList.remove('hidden');
+      hintElem.textContent = '「🎯 差し込み計算スタート！」を押すとリアルタイム発車スケジュールが表示されます';
+    }
+    if (tableContainer) tableContainer.classList.add('hidden');
+    tbody.innerHTML = '';
+    return;
+  }
+
+  if (selectedMembers.length === 0) {
+    if (hintElem) {
+      hintElem.classList.remove('hidden');
+      hintElem.textContent = '⚠️ 送信対象のメンバーが選択されていません。「👥 送信選択」から選択してください';
+    }
+    if (tableContainer) tableContainer.classList.add('hidden');
+    tbody.innerHTML = '';
+    return;
+  }
+
+  if (hintElem) hintElem.classList.add('hidden');
+  if (tableContainer) tableContainer.classList.remove('hidden');
+
+  const enemyLandDate = simpleLaunchState.enemyLandDate;
+
+  // Calculate launch times
+  const memberWithDates = selectedMembers.map(m => {
+    const targetLaunchDate = new Date(enemyLandDate.getTime() + 300 - m.marchSec * 1000);
+    return {
+      member: m,
+      targetLaunchDate: targetLaunchDate,
+      launchTimeMs: targetLaunchDate.getTime()
+    };
+  });
+
+  // Sort by earliest departure time first
+  memberWithDates.sort((a, b) => a.launchTimeMs - b.launchTimeMs);
+
+  const minLaunchTimeMs = memberWithDates[0].launchTimeMs;
+  let html = '';
+
+  memberWithDates.forEach((item, index) => {
+    const m = item.member;
+    const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
+    const diffFromFastestSec = (item.launchTimeMs - minLaunchTimeMs) / 1000;
+    
+    let diffStr = '';
+    let diffClass = '';
+
+    if (index === 0) {
+      diffStr = '🌟 最速基準';
+      diffClass = 'text-yellow-400 font-bold';
+    } else {
+      diffStr = `+${diffFromFastestSec.toFixed(1)}s`;
+      diffClass = 'text-cyan-300 font-bold';
+    }
+
+    const rowBg = index === 0 ? 'bg-yellow-950/30' : (index % 2 === 0 ? 'bg-black/30' : 'bg-cyan-950/20');
+
+    html += `
+      <tr class="${rowBg} hover:bg-cyan-900/40 transition-colors">
+        <td class="p-1.5 text-center font-bold text-gray-400 text-[10px]">${index + 1}</td>
+        <td class="p-1.5 font-bold text-cyan-200 truncate max-w-[100px]">${m.name}</td>
+        <td class="p-1.5 text-center text-gray-400 text-[10px]">(${formatCountdownMMSS(m.marchSec)})</td>
+        <td class="p-1.5 text-center font-bold text-yellow-300">${launchTimeStr}</td>
+        <td class="p-1.5 text-right ${diffClass}">${diffStr}</td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
 }
 
 // --- Floating Draggable Mini Memo Window Helpers (v1.02.21 & v1.02.22) ---
@@ -2758,6 +2866,7 @@ function renderAllianceMemberList() {
   });
 
   updateAllianceMemberBadges();
+  updateAllianceTimeline();
 }
 
 // Selection Checklist Modal Logic
@@ -2804,6 +2913,7 @@ function toggleAllianceMemberSelection(id, checked) {
     member.selected = checked;
     saveAllianceMembers();
     renderAllianceSelectionList();
+    updateAllianceTimeline();
   }
 }
 
@@ -2811,6 +2921,7 @@ function setAllAllianceSelection(checked) {
   allianceMembers.forEach(m => m.selected = checked);
   saveAllianceMembers();
   renderAllianceSelectionList();
+  updateAllianceTimeline();
 }
 
 // Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode Support: Name / Time)
