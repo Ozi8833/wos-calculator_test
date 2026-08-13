@@ -1553,6 +1553,12 @@ function toggleClockControls(forceState) {
     icon.className = isCollapsed ? 'fa-solid fa-chevron-down text-cyan-400' : 'fa-solid fa-chevron-up text-cyan-400';
   }
 
+  // Synchronize CSS class for 100% smooth bezier transition without stutter or delay
+  const appContainer = document.getElementById('app-container');
+  if (appContainer) {
+    appContainer.classList.toggle('clock-open', !isCollapsed);
+  }
+
   state.settings.clockControlsCollapsed = isCollapsed;
   saveAppSettings();
 }

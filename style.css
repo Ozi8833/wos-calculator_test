@@ -29,6 +29,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 html, body {
   max-width: 100vw;
   overflow-x: hidden !important;
@@ -98,11 +102,16 @@ body::before {
   width: 100%;
   max-width: 600px;
   min-height: 100vh;
-  padding-top: 145px;
+  padding-top: 155px;
   padding-bottom: 80px;
   display: flex;
   flex-direction: column;
   position: relative;
+  transition: padding-top 0.25s ease-out;
+}
+
+#app-container.clock-open {
+  padding-top: 275px;
 }
 
 /* Title / Opening Splash Screen (v1.03.29 Standard App Width & Decorative Frame Button Alignment) */
