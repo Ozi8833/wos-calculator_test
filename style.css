@@ -98,6 +98,7 @@ body::before {
   width: 100%;
   max-width: 600px;
   min-height: 100vh;
+  padding-top: 145px;
   padding-bottom: 80px;
   display: flex;
   flex-direction: column;
@@ -235,18 +236,23 @@ body::before {
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-/* Sticky Header */
+/* Sticky Header (v1.03.34 Fixed Top Positioning Rule) */
 #main-header,
 header.sticky-header {
-  position: sticky !important;
+  position: fixed !important;
   top: 0 !important;
-  z-index: 1000 !important;
-  background: rgba(8, 12, 20, 0.94);
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 100% !important;
+  max-width: 600px !important;
+  z-index: 9000 !important;
+  background: rgba(8, 12, 20, 0.96) !important;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 2px solid var(--card-border);
-  padding: 10px 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  padding: 8px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  box-sizing: border-box;
 }
 
 .clock-controls-collapsible {
