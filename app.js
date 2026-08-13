@@ -605,36 +605,43 @@ function formatTimeHHMMSSs(dateObj) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${sFraction}`;
 }
 
+function isNegativeTimeRaw(str) {
+  if (!str) return false;
+  return String(str).trim().includes('-');
+}
+
 function parseSecondsFromMMSS(str) {
   if (!str) return 0;
   let sStr = String(str).trim();
   let parts = sStr.split(':');
   let totalSec = 0;
   if (parts.length >= 2) {
-    let m = parseFloat(parts[0]) || 0;
-    let s = parseFloat(parts[1]) || 0;
+    let m = Math.abs(parseFloat(parts[0])) || 0;
+    let s = Math.abs(parseFloat(parts[1])) || 0;
     totalSec = m * 60 + s;
   } else {
-    totalSec = parseFloat(sStr) || 0;
+    totalSec = Math.abs(parseFloat(sStr)) || 0;
   }
-  return isNaN(totalSec) ? 0 : Math.round(totalSec * 10) / 10;
+  return isNaN(totalSec) || totalSec < 0 ? 0 : Math.round(totalSec * 10) / 10;
 }
 
 function parseSecondsFromHHMMSS(str) {
   if (!str) return 0;
-  let parts = str.trim().split(':');
+  let parts = String(str).trim().split(':');
+  let totalSec = 0;
   if (parts.length === 3) {
-    let h = parseFloat(parts[0]) || 0;
-    let m = parseFloat(parts[1]) || 0;
-    let s = parseFloat(parts[2]) || 0;
-    return h * 3600 + m * 60 + s;
+    let h = Math.abs(parseFloat(parts[0])) || 0;
+    let m = Math.abs(parseFloat(parts[1])) || 0;
+    let s = Math.abs(parseFloat(parts[2])) || 0;
+    totalSec = h * 3600 + m * 60 + s;
+  } else if (parts.length === 2) {
+    let m = Math.abs(parseFloat(parts[0])) || 0;
+    let s = Math.abs(parseFloat(parts[1])) || 0;
+    totalSec = m * 60 + s;
+  } else {
+    totalSec = Math.abs(parseFloat(str)) || 0;
   }
-  if (parts.length === 2) {
-    let m = parseFloat(parts[0]) || 0;
-    let s = parseFloat(parts[1]) || 0;
-    return m * 60 + s;
-  }
-  return parseFloat(str) || 0;
+  return isNaN(totalSec) || totalSec < 0 ? 0 : Math.round(totalSec * 10) / 10;
 }
 
 function formatCountdownMMSS(totalSec) {
@@ -2079,30 +2086,66 @@ function recalculateSimpleLaunchState(newRemSec) {
 
 function triggerSimpleEnemyLaunch() {
   initAudio();
-  const myStr = document.getElementById('simple-my-march')?.value || '01:30';
-  const enemyStr = document.getElementById('simple-enemy-march')?.value || '02:15';
-  const remStr = document.getElementById('simple-remaining-time')?.value || '03:00';
+  const myStr = document.getElementById('simple-my-march')?.value || '';
+  const enemyStr = document.getElementById('simple-enemy-march')?.value || '';
+  const remStr = document.getElementById('simple-remaining-time')?.value || '';
 
   const mySec = parseSecondsFromMMSS(myStr);
   const enemySec = parseSecondsFromMMSS(enemyStr);
   const remSec = parseSecondsFromMMSS(remStr);
 
+  // 1. Validation for raw negative inputs
+  if (isNegativeTimeRaw(myStr) || isNegativeTimeRaw(enemyStr) || isNegativeTimeRaw(remStr)) {
+    alert('⚠️ 【入力確認】マイナス（負の数）の時間は入力できません。正しく時間を設定してください。');
+    return;
+  }
+
+  // 2. Validation for empty or 00:00 march times
+  if (mySec <= 0) {
+    alert('⚠️ 【入力確認】「自分の行軍時間」をご確認ください。\n行軍時間に 00:00 または空欄は設定できません。(例: 01:30)');
+    document.getElementById('simple-my-march')?.focus();
+    return;
+  }
+
+  if (simpleLaunchState.statusMode === 'rally' && enemySec <= 0) {
+    alert('⚠️ 【入力確認】「相手の行軍時間」をご確認ください。\n行軍時間に 00:00 または空欄は設定できません。(例: 02:15)');
+    document.getElementById('simple-enemy-march')?.focus();
+    return;
+  }
+
   const now = getAdjustedNowTime();
   let enemyLandDate;
 
   if (simpleLaunchState.statusMode === 'rally') {
-    // [集結中] 相手着弾時刻 = 現在時刻 + 相手の集結残り時間 + 相手の行軍時間
+    // [集結中] 相手着弾時刻 = ボタン押下時刻 + 相手の集結残り時間 + 相手の行軍時間
     enemyLandDate = new Date(now.getTime() + (remSec + enemySec) * 1000);
   } else {
-    // [行軍中] 相手着弾時刻 = 現在時刻 + 相手の行軍残り時間
+    // [行軍中] 相手着弾時刻 = ボタン押下時刻 + 相手の行軍残り時間
     enemyLandDate = new Date(now.getTime() + remSec * 1000);
   }
 
   // 自分の発車時刻 = 相手着弾時刻 + 0.3s - 自分の行軍時間
   const targetLaunchDate = new Date(enemyLandDate.getTime() + 300 - mySec * 1000);
 
+  // 2. Check if calculated launch time is already in the past (out of time) (v1.03.21 Multi-factor clear explanation)
+  const diffSec = (targetLaunchDate.getTime() - now.getTime()) / 1000;
+  if (diffSec < -1.0) {
+    // Check if any selected alliance member has a launch time in the future
+    const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+    const hasLaunchableAllianceMember = selectedMembers.some(m => {
+      const memberLaunchMs = enemyLandDate.getTime() + 300 - m.marchSec * 1000;
+      return (memberLaunchMs - now.getTime()) / 1000 > -1.0;
+    });
+
+    if (!hasLaunchableAllianceMember) {
+      const passedSec = Math.abs(diffSec).toFixed(1);
+      const confirmLaunch = confirm(`⚠️ 【発車不可アラート（すでに手遅れです）】\n\n以下の原因が考えられます：\n① 自分の行軍時間（または集結時間）の設定が長すぎる\n② 相手の着弾までの残り時間が短すぎる（過去の時刻）\n\n※【 ${passedSec} 秒過去 】を経過しており全員間に合いません。\nこのまま差し込みタイマーを開始しますか？`);
+      if (!confirmLaunch) return;
+    }
+  }
+
   simpleLaunchState.isCalculated = true;
-  simpleLaunchState.calcStartTime = now;
+  simpleLaunchState.calcStartTime = new Date(now.getTime());
   simpleLaunchState.startRemSec = remSec;
   simpleLaunchState.enemyLandDate = enemyLandDate;
   simpleLaunchState.targetLaunchDate = targetLaunchDate;
@@ -2118,24 +2161,35 @@ function updateSimpleCountdown() {
 
   const now = getAdjustedNowTime();
 
-  // 1. Live Countdown of Remaining Time Input (Display MM:SS until targetLaunchDate is reached)
-  const remInput = document.getElementById('simple-remaining-time');
-  const diffSec = (simpleLaunchState.targetLaunchDate.getTime() - now.getTime()) / 1000;
+  // 1. Check if the LAST alliance member's launch time has passed (v1.03.17 Auto-Completion Check)
+  const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+  let maxLaunchTimeMs = simpleLaunchState.targetLaunchDate.getTime();
 
-  if (remInput && document.activeElement !== remInput) {
-    if (diffSec > 0) {
-      const elapsedSec = (now.getTime() - simpleLaunchState.calcStartTime.getTime()) / 1000;
-      const currentRemSec = Math.max(0, simpleLaunchState.startRemSec - elapsedSec);
-      remInput.value = formatCountdownMMSS(currentRemSec);
-    } else {
-      // Freeze input display at exact launch deadline time
-      const launchElapsedSec = (simpleLaunchState.targetLaunchDate.getTime() - simpleLaunchState.calcStartTime.getTime()) / 1000;
-      const launchRemSec = Math.max(0, simpleLaunchState.startRemSec - launchElapsedSec);
-      remInput.value = formatCountdownMMSS(launchRemSec);
-    }
+  if (selectedMembers.length > 0) {
+    selectedMembers.forEach(m => {
+      const memberLaunchMs = simpleLaunchState.enemyLandDate.getTime() + 300 - m.marchSec * 1000;
+      if (memberLaunchMs > maxLaunchTimeMs) {
+        maxLaunchTimeMs = memberLaunchMs;
+      }
+    });
   }
 
-  // 2. Ultra Prominent Projected Launch Time Display (Display HH:MM:SS of targetLaunchDate)
+  // If the last alliance launch time + 3s buffer has passed, automatically complete & reset cleanly!
+  if (now.getTime() > maxLaunchTimeMs + 3000) {
+    resetSimpleLaunchCalculation();
+    return;
+  }
+
+  // 2. Live Countdown of Remaining Time Input (Display MM:SS of enemy arrival countdown)
+  const remInput = document.getElementById('simple-remaining-time');
+  const elapsedSec = (now.getTime() - simpleLaunchState.calcStartTime.getTime()) / 1000;
+  const currentRemSec = Math.max(0, simpleLaunchState.startRemSec - elapsedSec);
+
+  if (remInput && document.activeElement !== remInput) {
+    remInput.value = formatCountdownMMSS(currentRemSec);
+  }
+
+  // 3. Ultra Prominent Projected Launch Time Display (Display HH:MM:SS of targetLaunchDate)
   const landTimeVal = document.getElementById('simple-land-time-val');
   if (landTimeVal) {
     landTimeVal.textContent = formatTimeHHMMSS(simpleLaunchState.targetLaunchDate);
@@ -2145,7 +2199,7 @@ function updateSimpleCountdown() {
     floatingLandTimeVal.textContent = formatTimeHHMMSS(simpleLaunchState.targetLaunchDate);
   }
 
-  // 3. Launch Deadline Countdown Display & 10s Countdown Beep Audio (v1.03.09)
+  // 4. Launch Deadline Countdown Display & 10s Countdown Beep Audio (v1.03.09)
   const statusLabel = document.getElementById('simple-status-label');
   const countdownVal = document.getElementById('simple-countdown-val');
   const subInfo = document.getElementById('simple-sub-info');
@@ -2153,6 +2207,7 @@ function updateSimpleCountdown() {
   if (!statusLabel || !countdownVal || !subInfo) return;
 
   const modeText = simpleLaunchState.statusMode === 'rally' ? '集結完了後発車' : '行軍着弾';
+  const diffSec = (simpleLaunchState.targetLaunchDate.getTime() - now.getTime()) / 1000;
 
   // 10s Countdown Audio Beep Logic
   if (!isSimpleAudioMuted && diffSec > 0 && diffSec <= 10.05) {
@@ -2168,6 +2223,9 @@ function updateSimpleCountdown() {
       }
     }
   }
+
+  const btnReset = document.getElementById('btn-simple-reset');
+  if (btnReset) btnReset.classList.remove('hidden');
 
   if (diffSec > 0) {
     statusLabel.textContent = `🔥 自分の発車ボタンを押すまで あと：`;
@@ -2188,27 +2246,60 @@ function updateSimpleCountdown() {
     countdownVal.className = "text-2xl sm:text-3xl font-black text-digital text-green-400";
     subInfo.textContent = "即座にゲーム画面で発車ボタンをタップ！";
   } else {
-    // Stop & reset calculation cleanly once deadline is passed
-    simpleLaunchState.isCalculated = false;
-    delete simpleLaunchState.calcStartTime;
-    delete simpleLaunchState.enemyLandDate;
-    delete simpleLaunchState.targetLaunchDate;
-    delete simpleLaunchState.lastBeepSecond;
-
-    statusLabel.textContent = "時間を設定して「差し込み計算スタート」を押してください";
-    statusLabel.className = "text-xs text-cyan-300 font-bold mt-2 mb-1";
-    countdownVal.textContent = "--:--.-";
-    countdownVal.className = "text-2xl font-black text-digital text-cyan-300";
-    subInfo.textContent = "相手着弾 0.3秒後 直後に自動合わせ";
-
-    if (landTimeVal) landTimeVal.textContent = "--:--:--";
-    if (floatingLandTimeVal) floatingLandTimeVal.textContent = "--:--:--";
-
-    if (remInput && document.activeElement !== remInput) {
-      remInput.value = formatCountdownMMSS(simpleLaunchState.startRemSec);
-    }
+    // User's own launch time passed, but calculation is still active for alliance members
+    statusLabel.textContent = "⚠️ 自分の発車予定時刻は経過しました";
+    statusLabel.className = "text-xs text-yellow-400 font-bold mt-2 mb-1";
+    countdownVal.textContent = "経過済み";
+    countdownVal.className = "text-xl sm:text-2xl font-black text-yellow-400";
+    subInfo.textContent = "同盟タイムラインのスケジュールを進行中";
   }
 
+  updateAllianceTimeline();
+}
+
+// v1.03.13 Forced Stop & Clean Reset Calculation
+function resetSimpleLaunchCalculation() {
+  const startSec = simpleLaunchState.startRemSec || 180;
+  
+  simpleLaunchState.isCalculated = false;
+  delete simpleLaunchState.calcStartTime;
+  delete simpleLaunchState.enemyLandDate;
+  delete simpleLaunchState.targetLaunchDate;
+  delete simpleLaunchState.lastBeepSecond;
+
+  const remInput = document.getElementById('simple-remaining-time');
+  if (remInput) {
+    remInput.value = formatCountdownMMSS(startSec);
+  }
+
+  // Explicitly reset all display elements to default blank states
+  const landTimeVal = document.getElementById('simple-land-time-val');
+  if (landTimeVal) landTimeVal.textContent = "--:--:--";
+
+  const floatingLandTimeVal = document.getElementById('floating-land-time-val');
+  if (floatingLandTimeVal) floatingLandTimeVal.textContent = "--:--:--";
+
+  const statusLabel = document.getElementById('simple-status-label');
+  if (statusLabel) {
+    statusLabel.textContent = "時間を設定して「差し込み計算スタート」を押してください";
+    statusLabel.className = "text-xs text-cyan-300 font-bold mt-2 mb-1";
+  }
+
+  const countdownVal = document.getElementById('simple-countdown-val');
+  if (countdownVal) {
+    countdownVal.textContent = "--:--.-";
+    countdownVal.className = "text-2xl font-black text-digital text-cyan-300";
+  }
+
+  const subInfo = document.getElementById('simple-sub-info');
+  if (subInfo) {
+    subInfo.textContent = "相手着弾 0.3秒後 直後に自動合わせ";
+  }
+
+  const btnReset = document.getElementById('btn-simple-reset');
+  if (btnReset) btnReset.classList.add('hidden');
+
+  // Cleanly clear and hide timeline card
   updateAllianceTimeline();
 }
 
@@ -3026,14 +3117,14 @@ function setAllianceCopySortMode(mode) {
 
 function copyAllianceMultiChat() {
   if (!simpleLaunchState.isCalculated || !simpleLaunchState.enemyLandDate) {
-    alert('「🎯 差し込み計算スタート！」を押して計算を開始してからコピーしてください。');
+    alert('⚠️ 【コピー不可】差し込み計算が開始されていないか、リセットされています。\nまず「🎯 差し込み計算スタート！」を押してスケジュールを生成してください。');
     return;
   }
 
   // Filter selected members
   const selectedMembers = allianceMembers.filter(m => m.selected !== false);
   if (selectedMembers.length === 0) {
-    alert('送信対象のメンバーが1人も選択されていません。「👥 送信選択」からメンバーにチェックを入れてください。');
+    alert('⚠️ 【メンバー未選択】同盟タイムラインの送信対象メンバーが1人も選択されていません。\n「👥 送信選択」から対象メンバーをチェックしてください。');
     return;
   }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.11 βテスト版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.30 βテスト版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -12,32 +12,41 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.03.11">
+  <link rel="stylesheet" href="style.css?v=1.03.30">
 </head>
 <body>
 
   <!-- App Main Wrapper -->
   <div id="app-container">
 
-    <!-- Title / Opening Splash Screen -->
+    <!-- Title / Opening Splash Screen (v1.03.29 Standard Container Size & Decorative Frame Button Alignment) -->
     <div id="splash-screen" onclick="this.style.display='none'; if(typeof initAudio==='function') initAudio();">
-      <div class="splash-overlay"></div>
-      <div class="splash-content">
-        <div class="text-4xl mb-4 text-cyan-400">⚔️</div>
-        <h1 class="splash-title">WHITEOUT SURVIVAL</h1>
-        <p class="splash-subtitle">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.11 βテスト版</p>
-        <button id="btn-start" class="tap-to-start safe-text" onclick="document.getElementById('splash-screen').style.display='none'; if(typeof initAudio==='function') initAudio();">
-          <i class="fa-solid fa-crosshairs mr-2"></i> TAP TO START
-        </button>
+      <div class="splash-app-container">
+        <!-- Top Title Header (Above Image Artwork) -->
+        <div class="splash-top-header mb-2">
+          <h1 class="splash-title-text">⚔️ WHITEOUT SURVIVAL</h1>
+          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.30 βテスト版</p>
+        </div>
+
+        <!-- Square Artwork Container -->
+        <div class="splash-image-frame">
+          <img src="Gemini_Generated_Image_m73t3qm73t3qm73t.png" alt="Whiteout Survival 差し込み計算ツール" class="splash-art-image">
+          <!-- TAP TO START Button Aligned Over the Red Highlighted Decorative Frame (75.5% vertical) -->
+          <div class="splash-button-overlay">
+            <button id="btn-start" class="tap-to-start-btn">
+              <i class="fa-solid fa-crosshairs mr-2"></i> TAP TO START
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Main Header Bar (Sticky Top) -->
     <header id="main-header" class="sticky-header">
       <div class="header-top">
-        <div class="brand">
-          <i class="fa-solid fa-shield-halved brand-icon"></i>
-          <span>WOS 差込計算</span>
+        <div class="brand flex items-center gap-1 shrink-0">
+          <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-sm sm:text-base"></i>
+          <span class="font-black text-cyan-400 whitespace-nowrap text-xs sm:text-sm tracking-tight">WOS 差込計算</span>
         </div>
         <div class="flex items-center gap-1.5">
           <!-- Clock Adjustment Bar Toggle Button -->
@@ -263,6 +272,11 @@
           <span id="simple-countdown-val" class="text-2xl font-black text-digital text-cyan-300 whitespace-nowrap">--:--.-</span>
         </div>
         <div id="simple-sub-info" class="text-xs text-gray-400 font-bold mt-1">相手着弾 0.3秒後 直後に自動合わせ</div>
+
+        <!-- Forced Stop & Reset Button (v1.03.12 Default Hidden) -->
+        <button id="btn-simple-reset" class="btn-game btn-danger w-full py-2 text-sm font-black mt-2 hidden whitespace-nowrap" onclick="resetSimpleLaunchCalculation()">
+          <i class="fa-solid fa-stop-circle mr-1"></i> ⏹ 計算を強制終了 (開始時の時間に戻す)
+        </button>
 
         <!-- Alliance Member Management & Multi Chat Copy Controls (v1.02.41 Copy Sort Mode Toggle) -->
         <div class="mt-3 pt-2.5 border-t border-cyan-500/30 space-y-2">
@@ -574,7 +588,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.11 βテスト版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.30 βテスト版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -589,12 +603,14 @@
           <input type="checkbox" id="setting-sticky-header" class="w-5 h-5 accent-cyan-400" checked>
         </div>
 
+        <!-- Unused Setting (Preserved for Future Release)
         <div class="flex justify-between items-center border-b border-gray-700 pb-2">
           <span>結果カードの詳細数値4項目を表示</span>
           <input type="checkbox" id="setting-show-result-metrics" class="w-5 h-5 accent-cyan-400" checked>
         </div>
+        -->
 
-        <!-- Card Visibility Toggle Section (v1.02.04) -->
+        <!-- Card Visibility Toggle Section (Preserved for Future Release)
         <div class="bg-black/50 p-3 rounded-xl border border-cyan-500/30 space-y-2 mt-3">
           <div class="text-xs font-bold text-cyan-300 mb-1 flex items-center gap-1">
             <i class="fa-solid fa-eye mr-1"></i> 画面カードの表示 / 非表示 設定
@@ -628,8 +644,9 @@
             <input type="checkbox" id="setting-show-card-floating-memo" class="w-4 h-4 accent-cyan-400" onchange="toggleCardVisibility('floating-memo', this.checked)">
           </div>
         </div>
+        -->
 
-        <!-- 6 Preset Themes Selector -->
+        <!-- Theme Selector & Custom Colors (Preserved for Future Release)
         <div class="border-b border-gray-700 pb-3">
           <label class="block font-bold mb-2 text-cyan-300">🎨 テーマプリセット (全6種)</label>
           <div class="grid grid-cols-2 gap-2 mb-2">
@@ -677,7 +694,9 @@
             </div>
           </div>
         </div>
+        -->
 
+        <!-- Background Image Setting (Preserved for Future Release)
         <div>
           <label class="block font-bold mb-1">背景画像URL</label>
           <div class="flex gap-2">
@@ -685,6 +704,7 @@
             <button id="btn-reset-bg" class="btn-game btn-xs btn-secondary">初期化</button>
           </div>
         </div>
+        -->
 
       </div>
     </div>
@@ -751,13 +771,13 @@
             形式: <code>名前, 行軍時間(MM:SS)</code> （カンマ・スペース・タブ区切りの改行貼り付けに対応）
           </div>
           <textarea id="alliance-import-textarea" class="w-full bg-black/70 border border-cyan-500/40 rounded p-2 text-cyan-100 font-mono text-xs focus:outline-none focus:border-cyan-400 resize-y" rows="4" placeholder="例:&#10;山田, 01:30&#10;佐藤, 02:15&#10;田中 01:45"></textarea>
-          <div class="flex justify-between items-center mt-2">
-            <button class="btn-game btn-xs btn-secondary" onclick="exportCurrentAllianceMembers('csv')" title="現在登録されている全メンバーを出力">
+          <div class="flex justify-between items-center mt-2 gap-1.5 flex-wrap sm:flex-nowrap">
+            <button class="btn-game btn-xs btn-secondary whitespace-nowrap text-[11px]" onclick="exportCurrentAllianceMembers('csv')" title="現在登録されている全メンバーを出力">
               <i class="fa-solid fa-download text-cyan-300"></i> 登録済メンバーを出力 (.csv)
             </button>
-            <div class="flex gap-1.5">
-              <button class="btn-game btn-xs btn-secondary" onclick="clearAllianceImportTextarea()">クリア</button>
-              <button class="btn-game btn-xs btn-accent font-bold" onclick="importAllianceMembersFromText()">📥 一括登録を実行</button>
+            <div class="flex gap-1.5 shrink-0 ml-auto">
+              <button class="btn-game btn-xs btn-secondary whitespace-nowrap min-w-[50px] px-2" onclick="clearAllianceImportTextarea()">クリア</button>
+              <button class="btn-game btn-xs btn-accent font-bold whitespace-nowrap px-2" onclick="importAllianceMembersFromText()">📥 一括登録を実行</button>
             </div>
           </div>
         </div>
@@ -813,6 +833,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.03.11"></script>
+  <script src="app.js?v=1.03.30"></script>
 </body>
 </html>
