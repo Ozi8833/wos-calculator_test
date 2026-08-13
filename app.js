@@ -3093,3 +3093,93 @@ if (document.readyState === 'loading') {
   loadAllianceMembers();
   setAllianceCopySortMode(allianceCopySortMode);
 }
+
+// v1.03.10 Interactive Help Tooltip System
+let activeTooltipPopover = null;
+
+function toggleHelpTooltip(event, helpKey) {
+  event.stopPropagation();
+  event.preventDefault();
+
+  if (activeTooltipPopover) {
+    const isSameKey = activeTooltipPopover.getAttribute('data-help-key') === helpKey;
+    activeTooltipPopover.remove();
+    activeTooltipPopover = null;
+    if (isSameKey) return;
+  }
+
+  const helpTexts = {
+    'my-march': '自分が出征してターゲット(砦や王城等)に到着するまでの時間（分:秒）を入力します。※ホワサバ内の出征画面右下に表示されています。',
+    'enemy-march': '相手(敵)が出征してターゲット(砦や王城等)に到着する時間を入力します。※ホワサバ内の集結画面で集結中から行軍中に切り替わった際の秒数を確認します。',
+    'enemy-rem': 'ホワサバ内の集結画面に表示されている集結中時間を入力します。※画面上部の【調整表示ボタン】を押すと調整同期ボタンが表示されます。',
+    'status-mode': 'ホワサバ内の集結画面に表示されている相手(敵)が【集結中】もしくは【行軍中】かを選択します。',
+    'alliance-timeline': '【送信選択】で選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。行をタップすると黄色枠で注目トラッキングできます。',
+    'copy-order': '同盟チャットに指示を貼り付ける際、名前順で並べるか、発車時刻が早い順で並べるかを選択できます。',
+    'member-manage': '同盟メンバーの追加・編集・削除や、名前・行軍時間の一括登録・テンプレート読み込みを行います。',
+    'member-select': '同盟一斉発車のスケジュール計算および個別指示文生成の対象とするメンバーをチェックボックスで選択します。'
+  };
+
+  const text = helpTexts[helpKey];
+  if (!text) return;
+
+  const btnElem = event.currentTarget;
+  const rect = btnElem.getBoundingClientRect();
+
+  const popover = document.createElement('div');
+  popover.className = 'tooltip-popover';
+  popover.setAttribute('data-help-key', helpKey);
+  popover.innerHTML = `
+    <div class="flex justify-between items-start mb-1 border-b border-cyan-500/30 pb-1">
+      <span class="font-bold text-yellow-300 text-xs flex items-center gap-1">
+        <i class="fa-solid fa-circle-question text-cyan-400"></i> 項目解説ヘルプ
+      </span>
+      <button class="text-gray-400 hover:text-white text-xs font-bold px-1" onclick="closeActiveTooltip(event)">&times;</button>
+    </div>
+    <div class="text-xs leading-relaxed text-cyan-100">${text}</div>
+  `;
+
+  document.body.appendChild(popover);
+
+  const popoverRect = popover.getBoundingClientRect();
+  const viewportHeight = window.innerHeight;
+  
+  // Smart Positioning: If button is near screen bottom (e.g. less than popover height + 80px), show popover ABOVE button
+  let top;
+  if (rect.bottom + popoverRect.height + 20 > viewportHeight) {
+    // Show ABOVE button
+    top = rect.top + window.scrollY - popoverRect.height - 8;
+  } else {
+    // Show BELOW button
+    top = rect.bottom + window.scrollY + 6;
+  }
+
+  let left = rect.left + window.scrollX - 10;
+
+  if (left + popoverRect.width > window.innerWidth - 12) {
+    left = window.innerWidth - popoverRect.width - 12;
+  }
+  if (left < 12) left = 12;
+
+  popover.style.top = `${top}px`;
+  popover.style.left = `${left}px`;
+
+  activeTooltipPopover = popover;
+}
+
+function closeActiveTooltip(event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  if (activeTooltipPopover) {
+    activeTooltipPopover.remove();
+    activeTooltipPopover = null;
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (activeTooltipPopover && !activeTooltipPopover.contains(e.target) && !e.target.classList.contains('help-icon-btn')) {
+    activeTooltipPopover.remove();
+    activeTooltipPopover = null;
+  }
+});

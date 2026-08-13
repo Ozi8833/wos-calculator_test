@@ -778,3 +778,60 @@ header.sticky-header {
   font-weight: 900 !important;
   text-shadow: 0 0 6px rgba(0, 0, 0, 0.9) !important;
 }
+
+/* Help Tooltip System (v1.03.11 Cyber Gold Badge & Smart Popover) */
+.help-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffe600, #ff9900);
+  border: 1px solid #ffffff;
+  color: #000000;
+  font-size: 11px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  margin-left: 5px;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  vertical-align: middle;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 0 8px rgba(255, 230, 0, 0.6);
+}
+
+.help-icon-btn:hover, .help-icon-btn:active {
+  background: linear-gradient(135deg, #ffffff, #ffe600);
+  color: #000000;
+  box-shadow: 0 0 14px rgba(255, 230, 0, 0.9);
+  transform: scale(1.18);
+}
+
+.tooltip-popover {
+  position: absolute;
+  z-index: 99999 !important;
+  background: rgba(10, 20, 35, 0.97);
+  border: 1.5px solid #00f0ff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 240, 255, 0.4);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #e0f7fa;
+  font-size: 11.5px;
+  line-height: 1.5;
+  width: min(280px, 85vw);
+  backdrop-filter: blur(10px);
+  animation: popoverFadeIn 0.2s ease-out;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
