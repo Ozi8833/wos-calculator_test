@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.30 βテスト版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.32 βテスト版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.03.30">
+  <link rel="stylesheet" href="style.css?v=1.03.32">
 </head>
 <body>
 
@@ -41,14 +41,18 @@
       </div>
     </div>
 
-    <!-- Main Header Bar (Sticky Top) -->
+    <!-- Main Header Bar (Sticky Top - v1.03.31 2-Row Top Title & Version Layout) -->
     <header id="main-header" class="sticky-header">
-      <div class="header-top">
-        <div class="brand flex items-center gap-1 shrink-0">
-          <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-sm sm:text-base"></i>
-          <span class="font-black text-cyan-400 whitespace-nowrap text-xs sm:text-sm tracking-tight">WOS 差込計算</span>
+      <div class="header-top flex-col items-center gap-1.5 mb-1.5">
+        <!-- 1st Row: Title & Version Badge -->
+        <div class="brand flex items-center justify-center gap-1.5 w-full">
+          <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-base sm:text-lg"></i>
+          <span class="font-black text-cyan-400 whitespace-nowrap text-sm sm:text-base tracking-wide">WOS 差込計算</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.03.32 β</span>
         </div>
-        <div class="flex items-center gap-1.5">
+
+        <!-- 2nd Row: Action Buttons Bar -->
+        <div class="header-buttons-row flex items-center justify-center gap-1 sm:gap-1.5 w-full flex-wrap">
           <!-- Clock Adjustment Bar Toggle Button -->
           <button id="btn-toggle-clock-controls" class="btn-game btn-xs btn-secondary flex items-center gap-1 font-bold whitespace-nowrap" onclick="toggleClockControls()" title="時計調整エリアの表示/非表示">
             <i id="clock-controls-icon" class="fa-solid fa-chevron-up text-cyan-400"></i> 時計調整
@@ -588,7 +592,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.30 βテスト版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.32 βテスト版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -833,6 +837,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.03.30"></script>
+  <script src="app.js?v=1.03.32"></script>
 </body>
 </html>
