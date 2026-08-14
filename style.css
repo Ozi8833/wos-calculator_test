@@ -713,7 +713,7 @@ header.sticky-header {
   100% { transform: scale(1.06); }
 }
 
-/* Modals */
+/* Modals (v1.03.41 Raised z-index to 99999 to always stay on top of fixed header) */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -722,7 +722,7 @@ header.sticky-header {
   height: 100vh;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
-  z-index: 2000;
+  z-index: 99999;
   display: flex;
   justify-content: center;
   align-items: center;

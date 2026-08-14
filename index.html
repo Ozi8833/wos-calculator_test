@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.40 βテスト版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.47 βテスト版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.03.40">
+  <link rel="stylesheet" href="style.css?v=1.03.47">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
         <!-- Top Title Header (Above Image Artwork) -->
         <div class="splash-top-header mb-2">
           <h1 class="splash-title-text">⚔️ WHITEOUT SURVIVAL</h1>
-          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.40 βテスト版</p>
+          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.47 βテスト版</p>
         </div>
 
         <!-- Square Artwork Container -->
@@ -48,7 +48,7 @@
         <div class="brand flex items-center justify-center gap-1.5 w-full">
           <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-base sm:text-lg"></i>
           <span class="font-black text-cyan-400 whitespace-nowrap text-sm sm:text-base tracking-wide">WOS 差込計算</span>
-          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.03.40 β</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.03.47 β</span>
         </div>
 
         <!-- 2nd Row: Action Buttons Bar -->
@@ -542,28 +542,219 @@
     </button>
   </nav>
 
-  <!-- Dual Calculator Modal -->
+  <!-- Triple Mode Calculator Modal (v1.03.42: Normal / Time Calc / Time Converter) -->
   <div id="calc-modal" class="modal-backdrop">
-    <div class="modal-body">
+    <div class="modal-body max-w-md">
+      <!-- Top Tab Switchers (4 Independent Modes) -->
       <div class="flex justify-between items-center mb-3">
-        <div class="flex gap-2">
-          <button id="calc-tab-normal" class="btn-game btn-xs btn-primary" onclick="switchCalcTab('normal')">通常電卓</button>
-          <button id="calc-tab-time" class="btn-game btn-xs btn-secondary" onclick="switchCalcTab('time')">時間電卓</button>
+        <div class="flex gap-1 flex-wrap">
+          <button id="calc-tab-time" class="btn-game btn-xs btn-primary font-bold px-2 py-1 text-xs" onclick="switchCalcTab('time')">⏱️ 時間計算</button>
+          <button id="calc-tab-converter" class="btn-game btn-xs btn-secondary font-bold px-2 py-1 text-xs" onclick="switchCalcTab('converter')">🔄 相互変換</button>
+          <button id="calc-tab-speedup" class="btn-game btn-xs btn-secondary font-bold px-2 py-1 text-xs text-yellow-300" onclick="switchCalcTab('speedup')">⚡️ 加速計算</button>
+          <button id="calc-tab-normal" class="btn-game btn-xs btn-secondary font-bold px-2 py-1 text-xs" onclick="switchCalcTab('normal')">🔢 通常電卓</button>
         </div>
-        <button class="text-gray-400 text-xl font-bold p-1" onclick="closeCalcModal()">&times;</button>
+        <button class="text-gray-400 text-xl font-bold p-1 hover:text-white" onclick="closeCalcModal()">&times;</button>
       </div>
 
-      <!-- Calculator Display -->
-      <div id="calc-display" class="calc-display safe-text">0</div>
+      <!-- Quick Action Buttons for Time Calculation (Currently active in Time mode) -->
+      <div id="calc-time-shortcuts" class="mb-2 space-y-1.5">
+        <!-- 1st Row: Current Time Injection & Insertion Transfer Targets -->
+        <div class="flex items-center gap-1.5 flex-wrap justify-between">
+          <button class="btn-game btn-xs bg-yellow-950/90 border border-yellow-500/70 text-yellow-300 font-bold px-2 py-1 text-xs" onclick="insertCurrentTimeIntoCalc()" title="現在のリアルタイム(UTC/JST)を代入">
+            <i class="fa-solid fa-clock mr-1"></i> 現在時刻代入
+          </button>
+          <div class="flex gap-1">
+            <button class="btn-game btn-xs bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 text-[11px] font-bold px-1.5 py-1" onclick="transferCalcResultToSimple('my')" title="計算結果を自分の行軍時間に反映">
+              📤 自分へ
+            </button>
+            <button class="btn-game btn-xs bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 text-[11px] font-bold px-1.5 py-1" onclick="transferCalcResultToSimple('enemy')" title="計算結果を相手の行軍時間に反映">
+              📤 相手へ
+            </button>
+            <button class="btn-game btn-xs bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 text-[11px] font-bold px-1.5 py-1" onclick="transferCalcResultToSimple('rem')" title="計算結果を残り時間に反映">
+              📤 残りへ
+            </button>
+          </div>
+        </div>
 
-      <!-- Calculator Keypad -->
+        <!-- 2nd Row: WOS Quick Preset Stepper Slot Buttons -->
+        <div class="grid grid-cols-5 gap-1 text-center">
+          <button class="btn-game btn-xs bg-gray-900 border border-yellow-500/40 text-yellow-300 font-bold py-1 text-[11px]" onclick="appendCalcTimeShortcut(300)">+5分</button>
+          <button class="btn-game btn-xs bg-gray-900 border border-yellow-500/40 text-yellow-300 font-bold py-1 text-[11px]" onclick="appendCalcTimeShortcut(60)">+1分</button>
+          <button class="btn-game btn-xs bg-gray-900 border border-cyan-500/40 text-cyan-300 font-bold py-1 text-[11px]" onclick="appendCalcTimeShortcut(30)">+30秒</button>
+          <button class="btn-game btn-xs bg-gray-900 border border-green-500/40 text-green-300 font-bold py-1 text-[11px]" onclick="appendCalcTimeShortcut(0.3)">+0.3秒</button>
+          <button class="btn-game btn-xs bg-gray-900 border border-red-500/40 text-red-300 font-bold py-1 text-[11px]" onclick="appendCalcTimeShortcut(-0.3)">-0.3秒</button>
+        </div>
+      </div>
+
+      <!-- Calculator Display Box -->
+      <div id="calc-display-container" class="relative">
+        <div id="calc-display" class="calc-display safe-text">0</div>
+        <!-- Smart Assistant Badge for Auto Rollover (e.g. 64秒 => 1分04秒) -->
+        <div id="calc-display-hint" class="text-right text-[11px] font-mono text-yellow-400/90 -mt-2.5 mb-2 h-4 pr-1"></div>
+      </div>
+
+      <!-- Calculator Keypad Container -->
       <div id="calc-keypad" class="calc-grid">
         <!-- Keypad rendered dynamically by JS -->
       </div>
 
+      <!-- Tab 2: Time Converter Dedicated Panel (Active when 'converter' tab selected) -->
+      <div id="calc-converter-panel" class="hidden space-y-2 mt-2">
+        <div class="bg-black/60 p-2.5 rounded-lg border border-cyan-500/40 space-y-2">
+          <div class="flex justify-between items-center text-xs text-gray-300">
+            <span class="font-bold text-yellow-300">🔄 リアルタイム相互変換結果</span>
+            <span class="text-[10px] text-gray-400">（タップでコピー / 転送）</span>
+          </div>
+
+          <!-- Result Row A: 時分秒形式 -->
+          <div class="flex justify-between items-center bg-gray-900/80 p-2 rounded border border-gray-700">
+            <div>
+              <div class="text-[10px] text-gray-400 font-bold">① 時・分・秒 形式</div>
+              <div id="conv-res-hms" class="text-sm font-black font-mono text-cyan-300">0時間0分0秒</div>
+            </div>
+            <div class="flex gap-1">
+              <button class="btn-game btn-xs btn-secondary px-2 py-0.5 text-[11px]" onclick="copyConverterValue('hms')">📋 コピー</button>
+            </div>
+          </div>
+
+          <!-- Result Row B: 分秒形式（時間なし） -->
+          <div class="flex justify-between items-center bg-gray-900/80 p-2 rounded border border-gray-700">
+            <div>
+              <div class="text-[10px] text-gray-400 font-bold">② 分・秒 形式 (時間なし)</div>
+              <div id="conv-res-ms" class="text-sm font-black font-mono text-yellow-300">0分0秒 (00:00)</div>
+            </div>
+            <div class="flex gap-1">
+              <button class="btn-game btn-xs btn-secondary px-2 py-0.5 text-[11px]" onclick="copyConverterValue('ms')">📋 コピー</button>
+              <button class="btn-game btn-xs btn-accent px-1.5 py-0.5 text-[11px] font-bold" onclick="transferConverterToSimple('my')">📤 自分</button>
+              <button class="btn-game btn-xs btn-accent px-1.5 py-0.5 text-[11px] font-bold" onclick="transferConverterToSimple('enemy')">📤 相手</button>
+            </div>
+          </div>
+
+          <!-- Result Row C: 総秒数形式 -->
+          <div class="flex justify-between items-center bg-gray-900/80 p-2 rounded border border-gray-700">
+            <div>
+              <div class="text-[10px] text-gray-400 font-bold">③ 総秒数 形式 (秒換算)</div>
+              <div id="conv-res-sec" class="text-sm font-black font-mono text-green-300">0 秒</div>
+            </div>
+            <div class="flex gap-1">
+              <button class="btn-game btn-xs btn-secondary px-2 py-0.5 text-[11px]" onclick="copyConverterValue('sec')">📋 コピー</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Dedicated WOS Speedup Items Optimizer Panel (Active when 'speedup' tab selected) -->
+      <div id="calc-speedup-panel" class="hidden space-y-2 mt-2">
+        <div class="bg-black/70 p-2.5 rounded-lg border border-yellow-500/40 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-yellow-300 flex items-center gap-1">
+              <i class="fa-solid fa-bolt-lightning text-yellow-400"></i> ホワサバ時間加速 必要個数
+            </span>
+            <button class="btn-game btn-xs bg-yellow-950 border border-yellow-500/50 text-yellow-300 font-bold px-2 py-0.5 text-[11px]" onclick="copySpeedupOptimizationResult()">
+              📋 加速内訳をコピー
+            </button>
+          </div>
+
+          <!-- Speedup Selection Filters -->
+          <div class="bg-gray-950/80 p-2 rounded border border-gray-800">
+            <div class="text-[10px] text-gray-400 font-bold mb-1.5 flex items-center justify-between">
+              <span>使用する加速アイテムを選択 (ON/OFF):</span>
+              <span class="text-cyan-400 text-[10px]">即座に最適再計算</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 text-center text-xs font-bold">
+              <label class="flex items-center justify-center gap-1 bg-yellow-950/40 border border-yellow-500/40 p-1 rounded cursor-pointer select-none">
+                <input type="checkbox" id="speedup-use-8h" class="w-3.5 h-3.5 accent-yellow-400" checked onchange="updateSpeedupOptimizer()">
+                <span class="text-yellow-300 text-[11px]">8時間</span>
+              </label>
+              <label class="flex items-center justify-center gap-1 bg-cyan-950/40 border border-cyan-500/40 p-1 rounded cursor-pointer select-none">
+                <input type="checkbox" id="speedup-use-1h" class="w-3.5 h-3.5 accent-cyan-400" checked onchange="updateSpeedupOptimizer()">
+                <span class="text-cyan-300 text-[11px]">1時間</span>
+              </label>
+              <label class="flex items-center justify-center gap-1 bg-green-950/40 border border-green-500/40 p-1 rounded cursor-pointer select-none">
+                <input type="checkbox" id="speedup-use-5m" class="w-3.5 h-3.5 accent-green-400" checked onchange="updateSpeedupOptimizer()">
+                <span class="text-green-300 text-[11px]">5分</span>
+              </label>
+              <label class="flex items-center justify-center gap-1 bg-gray-800/60 border border-gray-600/40 p-1 rounded cursor-pointer select-none">
+                <input type="checkbox" id="speedup-use-1m" class="w-3.5 h-3.5 accent-blue-400" checked onchange="updateSpeedupOptimizer()">
+                <span class="text-gray-200 text-[11px]">1分</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Optimal Mix Summary -->
+          <div class="bg-gray-900/90 p-2 rounded border border-yellow-500/30">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[11px] font-bold text-yellow-300">✨ 選択加速の最適組み合わせ (最小個数)</span>
+              <span id="speedup-total-count" class="text-xs font-black text-cyan-300">合計 0 個</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-center font-mono text-xs">
+              <div class="bg-black/60 p-1 rounded border border-yellow-500/20">
+                <div class="text-[9px] text-yellow-400">8時間</div>
+                <div id="speedup-count-8h" class="font-bold text-yellow-300 text-sm">0</div>
+              </div>
+              <div class="bg-black/60 p-1 rounded border border-cyan-500/20">
+                <div class="text-[9px] text-cyan-400">1時間</div>
+                <div id="speedup-count-1h" class="font-bold text-cyan-300 text-sm">0</div>
+              </div>
+              <div class="bg-black/60 p-1 rounded border border-green-500/20">
+                <div class="text-[9px] text-green-400">5分</div>
+                <div id="speedup-count-5m" class="font-bold text-green-300 text-sm">0</div>
+              </div>
+              <div class="bg-black/60 p-1 rounded border border-gray-700">
+                <div class="text-[9px] text-gray-400">1分</div>
+                <div id="speedup-count-1m" class="font-bold text-gray-200 text-sm">0</div>
+              </div>
+            </div>
+            <div id="speedup-rem-note" class="text-[10px] text-gray-400 text-right mt-1 font-mono">余り: 0秒</div>
+          </div>
+
+          <!-- Single Item Requirements Breakdown (v1.03.47 Clean 2-Row Layout) -->
+          <div class="bg-gray-900/60 p-2 rounded border border-gray-800 space-y-1">
+            <div class="text-[10px] font-bold text-gray-400">🎯 単独使用時の必要個数 (各アイテム単体で加速した場合)</div>
+            <div class="grid grid-cols-2 gap-1.5 text-xs font-mono">
+              <!-- 8 Hours Card -->
+              <div class="bg-black/50 p-1.5 rounded border border-gray-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                  <span class="text-yellow-400 text-[11px] font-bold">8時間加速だけ:</span>
+                  <span id="speedup-single-8h-num" class="font-bold text-yellow-300 text-sm">0個</span>
+                </div>
+                <div id="speedup-single-8h-status" class="text-[10px] text-right mt-0.5"></div>
+              </div>
+
+              <!-- 1 Hour Card -->
+              <div class="bg-black/50 p-1.5 rounded border border-gray-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                  <span class="text-cyan-400 text-[11px] font-bold">1時間加速だけ:</span>
+                  <span id="speedup-single-1h-num" class="font-bold text-cyan-300 text-sm">0個</span>
+                </div>
+                <div id="speedup-single-1h-status" class="text-[10px] text-right mt-0.5"></div>
+              </div>
+
+              <!-- 5 Min Card -->
+              <div class="bg-black/50 p-1.5 rounded border border-gray-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                  <span class="text-green-400 text-[11px] font-bold">5分加速だけ:</span>
+                  <span id="speedup-single-5m-num" class="font-bold text-green-300 text-sm">0個</span>
+                </div>
+                <div id="speedup-single-5m-status" class="text-[10px] text-right mt-0.5"></div>
+              </div>
+
+              <!-- 1 Min Card -->
+              <div class="bg-black/50 p-1.5 rounded border border-gray-800 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-300 text-[11px] font-bold">1分加速だけ:</span>
+                  <span id="speedup-single-1m-num" class="font-bold text-gray-200 text-sm">0個</span>
+                </div>
+                <div id="speedup-single-1m-status" class="text-[10px] text-right mt-0.5"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Time Calculator History & Memo Panel -->
       <div id="calc-history-panel" class="calc-history-box mt-3">
-        <div class="flex justify-between items-center mb-2">
+        <div class="flex justify-between items-center mb-1.5">
           <span class="font-bold text-yellow-400 text-xs"><i class="fa-solid fa-clock-rotate-left mr-1"></i> 計算履歴 ＆ メモ</span>
           <button class="text-gray-400 text-xs hover:text-red-400" onclick="clearCalcHistory()">履歴消去</button>
         </div>
@@ -592,7 +783,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.40 βテスト版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.47 βテスト版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -837,6 +1028,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.03.40"></script>
+  <script src="app.js?v=1.03.47"></script>
 </body>
 </html>

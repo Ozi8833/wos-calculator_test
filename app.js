@@ -1289,33 +1289,63 @@ function copyChatFormat() {
   });
 }
 
-// --- Dual Calculator Logic (Rewritten Time Parser & History/Notes) ---
+// --- Triple Mode Calculator & Time Converter Engine (v1.03.42) ---
 const calcHistory = [];
+let calcActiveResultSec = 0; // Cached total seconds for transfer/converter
 
 function switchCalcTab(mode) {
   state.calc.mode = mode;
-  document.getElementById('calc-tab-normal').className = `btn-game btn-xs ${mode === 'normal' ? 'btn-primary' : 'btn-secondary'}`;
-  document.getElementById('calc-tab-time').className = `btn-game btn-xs ${mode === 'time' ? 'btn-primary' : 'btn-secondary'}`;
+  
+  const tabNormal = document.getElementById('calc-tab-normal');
+  const tabTime = document.getElementById('calc-tab-time');
+  const tabConv = document.getElementById('calc-tab-converter');
+  const tabSpeedup = document.getElementById('calc-tab-speedup');
+  const shortcuts = document.getElementById('calc-time-shortcuts');
+  const convPanel = document.getElementById('calc-converter-panel');
+  const speedupPanel = document.getElementById('calc-speedup-panel');
+  const keypad = document.getElementById('calc-keypad');
+  const historyPanel = document.getElementById('calc-history-panel');
+
+  if (tabNormal) tabNormal.className = `btn-game btn-xs ${mode === 'normal' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
+  if (tabTime) tabTime.className = `btn-game btn-xs ${mode === 'time' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
+  if (tabConv) tabConv.className = `btn-game btn-xs ${mode === 'converter' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
+  if (tabSpeedup) tabSpeedup.className = `btn-game btn-xs ${mode === 'speedup' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs text-yellow-300`;
+
+  if (shortcuts) shortcuts.style.display = mode === 'time' ? 'block' : 'none';
+  if (convPanel) convPanel.style.display = mode === 'converter' ? 'block' : 'none';
+  if (speedupPanel) speedupPanel.style.display = mode === 'speedup' ? 'block' : 'none';
+  if (historyPanel) historyPanel.style.display = (mode === 'normal' || mode === 'time') ? 'block' : 'none';
+
   state.calc.expression = '';
   renderCalcKeypad();
   updateCalcDisplay();
+  if (mode === 'converter' || mode === 'speedup') {
+    updateTimeConverterOutput(0);
+  }
   renderCalcHistory();
 }
 
 function renderCalcKeypad() {
   const container = document.getElementById('calc-keypad');
+  if (!container) return;
   container.innerHTML = '';
 
   let keys = [];
   if (state.calc.mode === 'normal') {
     keys = ['C', '⌫', '÷', '×', '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '=', '0', '.'];
+  } else if (state.calc.mode === 'time') {
+    // Time mode: numbers, operators, colon, clear
+    keys = ['C', '⌫', ':', '+', '7', '8', '9', '-', '4', '5', '6', '=', '1', '2', '3', '0'];
   } else {
-    keys = ['C', '⌫', '時', '分', '7', '8', '9', '秒', '4', '5', '6', '+', '1', '2', '3', '-', '0', '='];
+    // Converter / Speedup mode: input numbers / clear / units
+    keys = ['C', '⌫', ':', '秒', '7', '8', '9', '分', '4', '5', '6', '時', '1', '2', '3', '0'];
   }
 
   keys.forEach(key => {
     const btn = document.createElement('button');
-    btn.className = `btn-game calc-btn ${['+', '-', '×', '÷', '='].includes(key) ? 'btn-accent' : ''}`;
+    const isOp = ['+', '-', '×', '÷', '='].includes(key);
+    const isAccent = ['時', '分', '秒', ':'].includes(key);
+    btn.className = `btn-game calc-btn ${isOp ? 'btn-accent' : (isAccent ? 'bg-cyan-950/80 border border-cyan-500/50 text-cyan-300' : '')}`;
     btn.textContent = key;
     btn.onclick = () => handleCalcKey(key);
     container.appendChild(btn);
@@ -1329,32 +1359,62 @@ function handleCalcKey(key) {
     state.calc.expression = state.calc.expression.slice(0, -1);
   } else if (key === '=') {
     evaluateCalc();
+    return;
   } else {
     state.calc.expression += key;
   }
+
   updateCalcDisplay();
+  if (state.calc.mode === 'converter' || state.calc.mode === 'speedup') {
+    const totalSec = parseFlexibleInputToSeconds(state.calc.expression);
+    updateTimeConverterOutput(totalSec);
+  }
 }
 
-function updateCalcDisplay() {
-  const display = document.getElementById('calc-display');
-  display.textContent = state.calc.expression || '0';
+// Smart Rollover & Irregular Seconds/Minutes Parser (Plan A Auto Rollover)
+function normalizeTimeRollover(totalSeconds) {
+  let isNeg = totalSeconds < 0;
+  let sec = Math.abs(totalSeconds);
+
+  let hours = Math.floor(sec / 3600);
+  let mins = Math.floor((sec % 3600) / 60);
+  let secs = Math.floor(sec % 60);
+  let ms = (sec - Math.floor(sec)).toFixed(1).replace('0.', '.');
+  if (ms === '.0') ms = '';
+
+  let hmsStr = '';
+  if (hours > 0) hmsStr += `${hours}時間`;
+  if (mins > 0 || hours > 0) hmsStr += `${mins}分`;
+  hmsStr += `${secs}${ms}秒`;
+
+  const totalMin = Math.floor(sec / 60);
+  const msColonStr = `${String(totalMin).padStart(2, '0')}:${String(secs).padStart(2, '0')}${ms}`;
+
+  return {
+    isNeg,
+    totalSeconds,
+    hours,
+    mins,
+    secs,
+    hmsStr: isNeg ? `-${hmsStr}` : hmsStr,
+    msColonStr: isNeg ? `-${msColonStr}` : msColonStr,
+    rawSecStr: isNeg ? `-${sec.toFixed(1)}` : `${sec.toFixed(1)}`
+  };
 }
 
-// Time Expression Parser (Unitless Default = Seconds)
+// Time Expression Parser (Supports "1000分", "2時間30分", "50秒", "10000秒", "1時30分40秒")
 function parseTimeExpressionToSeconds(expr) {
   if (!expr) return 0;
-
-  // Split expression into tokens of numbers with units or standalone numbers, plus operators
-  // Matches e.g. "1時", "50分", "42秒", "75", "+", "-"
-  const tokenRegex = /(\d+)\s*(時間|時|分|秒)?|([+-])/g;
+  const tokenRegex = /(\d+(\.\d+)?)\s*(時間|時|分|秒)?|([+-])/g;
   let match;
   let totalSec = 0;
   let currentSign = 1;
+  let hasFoundAnyUnit = false;
 
   while ((match = tokenRegex.exec(expr)) !== null) {
     const numStr = match[1];
-    const unit = match[2];
-    const op = match[3];
+    const unit = match[3];
+    const op = match[4];
 
     if (op) {
       currentSign = (op === '-') ? -1 : 1;
@@ -1362,18 +1422,20 @@ function parseTimeExpressionToSeconds(expr) {
     }
 
     if (numStr !== undefined) {
-      let val = parseInt(numStr, 10);
+      let val = parseFloat(numStr) || 0;
       let termSec = 0;
 
       if (unit === '時間' || unit === '時') {
         termSec = val * 3600;
+        hasFoundAnyUnit = true;
       } else if (unit === '分') {
         termSec = val * 60;
+        hasFoundAnyUnit = true;
       } else if (unit === '秒') {
         termSec = val;
+        hasFoundAnyUnit = true;
       } else {
-        // Unitless fallback => SECONDS as per user request
-        termSec = val;
+        termSec = val; // Default to seconds if no unit
       }
 
       totalSec += currentSign * termSec;
@@ -1383,20 +1445,95 @@ function parseTimeExpressionToSeconds(expr) {
   return totalSec;
 }
 
-function formatSecondsToTimeStr(totalSec) {
-  let isNeg = totalSec < 0;
-  totalSec = Math.abs(totalSec);
+// Parses string like "14:30:00", "01:30", "64", "64:64", "2時間30分", "1000分", "10000秒" into exact seconds
+function parseFlexibleInputToSeconds(expr) {
+  if (!expr) return 0;
+  let clean = expr.trim();
 
-  let h = Math.floor(totalSec / 3600);
-  let m = Math.floor((totalSec % 3600) / 60);
-  let s = Math.floor(totalSec % 60);
+  // If Japanese units "時", "分", "秒"
+  if (/時|分|秒/.test(clean)) {
+    return parseTimeExpressionToSeconds(clean);
+  }
 
-  let res = '';
-  if (h > 0) res += `${h}時間`;
-  if (m > 0 || h > 0) res += `${m}分`;
-  res += `${s}秒`;
+  // If contains HH:MM:SS or MM:SS colons
+  if (clean.includes(':')) {
+    const parts = clean.split(':').map(p => parseFloat(p) || 0);
+    if (parts.length === 3) {
+      // HH:MM:SS (supports irregular rollover e.g. 01:64:64)
+      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      // MM:SS (supports irregular rollover e.g. 64:64)
+      return parts[0] * 60 + parts[1];
+    }
+  }
 
-  return isNeg ? `-${res}` : res;
+  // If pure number (defaults to seconds)
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+}
+
+// Parses formula e.g. "14:30:00 + 02:15 - 30"
+function parseTimeFormulaExpression(expr) {
+  if (!expr) return 0;
+  
+  // Tokenize by + or -
+  const tokens = [];
+  let currentToken = '';
+  for (let i = 0; i < expr.length; i++) {
+    const char = expr[i];
+    if (char === '+' || char === '-') {
+      if (currentToken.trim()) {
+        tokens.push(currentToken.trim());
+      }
+      tokens.push(char);
+      currentToken = '';
+    } else {
+      currentToken += char;
+    }
+  }
+  if (currentToken.trim()) {
+    tokens.push(currentToken.trim());
+  }
+
+  let totalSeconds = 0;
+  let currentSign = 1;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token === '+') {
+      currentSign = 1;
+    } else if (token === '-') {
+      currentSign = -1;
+    } else {
+      const termSec = parseFlexibleInputToSeconds(token);
+      totalSeconds += currentSign * termSec;
+    }
+  }
+
+  return totalSeconds;
+}
+
+function updateCalcDisplay() {
+  const display = document.getElementById('calc-display');
+  const hint = document.getElementById('calc-display-hint');
+  if (!display) return;
+
+  const expr = state.calc.expression;
+  display.textContent = expr || '0';
+
+  if (hint) {
+    if (state.calc.mode === 'time' && expr) {
+      const sec = parseTimeFormulaExpression(expr);
+      const normalized = normalizeTimeRollover(sec);
+      hint.textContent = `(＝ ${normalized.hmsStr} / ${normalized.msColonStr})`;
+    } else if ((state.calc.mode === 'converter' || state.calc.mode === 'speedup') && expr) {
+      const sec = parseFlexibleInputToSeconds(expr);
+      const normalized = normalizeTimeRollover(sec);
+      hint.textContent = `(＝ ${normalized.hmsStr})`;
+    } else {
+      hint.textContent = '';
+    }
+  }
 }
 
 function evaluateCalc() {
@@ -1409,17 +1546,289 @@ function evaluateCalc() {
       let evalExpr = expr.replace(/×/g, '*').replace(/÷/g, '/');
       let res = eval(evalExpr);
       resultStr = String(res);
+      calcActiveResultSec = parseFloat(res) || 0;
     } else {
-      let totalSec = parseTimeExpressionToSeconds(expr);
-      resultStr = formatSecondsToTimeStr(totalSec);
+      // Time mode: Smart calculation with Auto Rollover (Plan A)
+      let totalSec = parseTimeFormulaExpression(expr);
+      calcActiveResultSec = totalSec;
+      const normalized = normalizeTimeRollover(totalSec);
+
+      // If user had time format with hours, format with HH:MM:SS, else MM:SS
+      if (normalized.hours > 0 || expr.split(':').length === 3) {
+        const hh = String(normalized.hours).padStart(2, '0');
+        const mm = String(normalized.mins).padStart(2, '0');
+        const ss = String(normalized.secs).padStart(2, '0');
+        resultStr = `${hh}:${mm}:${ss}`;
+      } else {
+        resultStr = normalized.msColonStr;
+      }
     }
 
     // Add to history
     saveCalcHistory(expr, resultStr);
     state.calc.expression = resultStr;
+    updateCalcDisplay();
   } catch (e) {
     state.calc.expression = 'Error';
+    updateCalcDisplay();
   }
+}
+
+// Injects current live clock (UTC or JST) into Time Calculator
+function insertCurrentTimeIntoCalc() {
+  const now = getAdjustedNowTime();
+  const timeStr = formatTimeHHMMSS(now);
+  if (state.calc.expression && !['+', '-'].includes(state.calc.expression.slice(-1))) {
+    state.calc.expression += ' + ';
+  }
+  state.calc.expression += timeStr;
+  updateCalcDisplay();
+}
+
+// Quick Preset Slot button (+5分, +1分, +30秒, +0.3秒, -0.3秒)
+function appendCalcTimeShortcut(secondsDelta) {
+  const isPos = secondsDelta >= 0;
+  const op = isPos ? ' + ' : ' - ';
+  const absSec = Math.abs(secondsDelta);
+  
+  let formatted = '';
+  if (absSec === 300) formatted = '05:00';
+  else if (absSec === 60) formatted = '01:00';
+  else if (absSec === 30) formatted = '00:30';
+  else formatted = `${absSec}秒`;
+
+  state.calc.expression = (state.calc.expression || '00:00') + op + formatted;
+  updateCalcDisplay();
+}
+
+// Live Time Converter Updater (Outputs HMS / MS / Total Seconds & Speedups)
+function updateTimeConverterOutput(totalSec) {
+  const normalized = normalizeTimeRollover(totalSec);
+  calcActiveResultSec = totalSec;
+
+  const hmsElem = document.getElementById('conv-res-hms');
+  const msElem = document.getElementById('conv-res-ms');
+  const secElem = document.getElementById('conv-res-sec');
+
+  if (hmsElem) hmsElem.textContent = normalized.hmsStr || '0時間0分0秒';
+  if (msElem) msElem.textContent = `${normalized.mins + normalized.hours * 60}分${normalized.secs}秒 (${normalized.msColonStr})`;
+  if (secElem) secElem.textContent = `${normalized.rawSecStr} 秒`;
+
+  updateSpeedupOptimizer();
+}
+
+// WOS Speedup Optimization Engine (v1.03.44: Multi-item optimal mix + Single item breakdown)
+function updateSpeedupOptimizer() {
+  const totalSec = Math.max(0, calcActiveResultSec);
+  const use8h = document.getElementById('speedup-use-8h')?.checked ?? true;
+  const use1h = document.getElementById('speedup-use-1h')?.checked ?? true;
+  const use5m = document.getElementById('speedup-use-5m')?.checked ?? true;
+  const use1m = document.getElementById('speedup-use-1m')?.checked ?? true;
+
+  // Helper function to format single item count with excess note (v1.03.47 Clean 2-Row Split)
+  const formatSingleItemWithExcess = (unitSec) => {
+    if (totalSec <= 0) {
+      return { num: '0個', statusHtml: '', text: '0個' };
+    }
+    const count = Math.ceil(totalSec / unitSec);
+    const totalProvidedSec = count * unitSec;
+    const excessSec = totalProvidedSec - totalSec;
+
+    if (excessSec <= 0) {
+      return {
+        num: `${count.toLocaleString()}個`,
+        statusHtml: '<span class="text-[10px] text-cyan-400 font-bold font-mono">(✨ぴったり)</span>',
+        text: `${count}個 (✨ぴったり)`
+      };
+    } else {
+      const normalizedExcess = normalizeTimeRollover(excessSec);
+      const excessStr = normalizedExcess.hmsStr;
+      return {
+        num: `${count.toLocaleString()}個`,
+        statusHtml: `<span class="text-[10px] text-red-400 font-bold font-mono" title="過剰時間">(+${excessStr}過剰⚠️)</span>`,
+        text: `${count}個 (+${excessStr}過剰⚠️)`
+      };
+    }
+  };
+
+  const res8h = formatSingleItemWithExcess(8 * 3600);
+  const res1h = formatSingleItemWithExcess(3600);
+  const res5m = formatSingleItemWithExcess(300);
+  const res1m = formatSingleItemWithExcess(60);
+
+  const s8hNum = document.getElementById('speedup-single-8h-num');
+  const s8hStatus = document.getElementById('speedup-single-8h-status');
+  const s1hNum = document.getElementById('speedup-single-1h-num');
+  const s1hStatus = document.getElementById('speedup-single-1h-status');
+  const s5mNum = document.getElementById('speedup-single-5m-num');
+  const s5mStatus = document.getElementById('speedup-single-5m-status');
+  const s1mNum = document.getElementById('speedup-single-1m-num');
+  const s1mStatus = document.getElementById('speedup-single-1m-status');
+
+  if (s8hNum) s8hNum.textContent = res8h.num;
+  if (s8hStatus) s8hStatus.innerHTML = res8h.statusHtml;
+
+  if (s1hNum) s1hNum.textContent = res1h.num;
+  if (s1hStatus) s1hStatus.innerHTML = res1h.statusHtml;
+
+  if (s5mNum) s5mNum.textContent = res5m.num;
+  if (s5mStatus) s5mStatus.innerHTML = res5m.statusHtml;
+
+  if (s1mNum) s1mNum.textContent = res1m.num;
+  if (s1mStatus) s1mStatus.innerHTML = res1m.statusHtml;
+
+  // 2. Multi-Item Optimal Mix (Greedy matching by selected units)
+  let rem = totalSec;
+  let count8h = 0;
+  let count1h = 0;
+  let count5m = 0;
+  let count1m = 0;
+
+  if (use8h) {
+    count8h = Math.floor(rem / (8 * 3600));
+    rem %= (8 * 3600);
+  }
+  if (use1h) {
+    count1h = Math.floor(rem / 3600);
+    rem %= 3600;
+  }
+  if (use5m) {
+    count5m = Math.floor(rem / 300);
+    rem %= 300;
+  }
+  if (use1m) {
+    count1m = Math.floor(rem / 60);
+    rem %= 60;
+  }
+
+  const totalCount = count8h + count1h + count5m + count1m;
+
+  const totalCountElem = document.getElementById('speedup-total-count');
+  const c8hElem = document.getElementById('speedup-count-8h');
+  const c1hElem = document.getElementById('speedup-count-1h');
+  const c5mElem = document.getElementById('speedup-count-5m');
+  const c1mElem = document.getElementById('speedup-count-1m');
+  const remElem = document.getElementById('speedup-rem-note');
+
+  if (totalCountElem) totalCountElem.textContent = `合計 ${totalCount.toLocaleString()} 個`;
+  if (c8hElem) c8hElem.textContent = count8h.toLocaleString();
+  if (c1hElem) c1hElem.textContent = count1h.toLocaleString();
+  if (c5mElem) c5mElem.textContent = count5m.toLocaleString();
+  if (c1mElem) c1mElem.textContent = count1m.toLocaleString();
+
+  if (remElem) {
+    if (rem > 0) {
+      remElem.textContent = `⚠️ カバーしきれない余り: ${rem.toFixed(1)}秒 (1分未満)`;
+      remElem.className = 'text-[10px] text-yellow-400 text-right mt-1 font-mono font-bold';
+    } else {
+      remElem.textContent = '✨ 余りなし (ぴったりカバー)';
+      remElem.className = 'text-[10px] text-cyan-400 text-right mt-1 font-mono';
+    }
+  }
+}
+
+// Copy Speedup Optimization Breakdown to Clipboard
+function copySpeedupOptimizationResult() {
+  const totalSec = Math.max(0, calcActiveResultSec);
+  const normalized = normalizeTimeRollover(totalSec);
+
+  const use8h = document.getElementById('speedup-use-8h')?.checked ?? true;
+  const use1h = document.getElementById('speedup-use-1h')?.checked ?? true;
+  const use5m = document.getElementById('speedup-use-5m')?.checked ?? true;
+  const use1m = document.getElementById('speedup-use-1m')?.checked ?? true;
+
+  let rem = totalSec;
+  let count8h = use8h ? Math.floor(rem / (8 * 3600)) : 0;
+  if (use8h) rem %= (8 * 3600);
+
+  let count1h = use1h ? Math.floor(rem / 3600) : 0;
+  if (use1h) rem %= 3600;
+
+  let count5m = use5m ? Math.floor(rem / 300) : 0;
+  if (use5m) rem %= 300;
+
+  let count1m = use1m ? Math.floor(rem / 60) : 0;
+  if (use1m) rem %= 60;
+
+  const totalCount = count8h + count1h + count5m + count1m;
+
+  const formatSingleForCopy = (unitSec) => {
+    if (totalSec <= 0) return '0個';
+    const count = Math.ceil(totalSec / unitSec);
+    const excessSec = (count * unitSec) - totalSec;
+    if (excessSec <= 0) return `${count}個 (✨ぴったり)`;
+    const excessStr = normalizeTimeRollover(excessSec).hmsStr;
+    return `${count}個 (+${excessStr}過剰⚠️)`;
+  };
+
+  let text = `⚡️【ホワサバ時間加速 必要個数計算】
+🎯 対象時間: ${normalized.hmsStr} (${normalized.rawSecStr}秒)
+---------------------------------
+【✨ 選択加速の最適組み合わせ】
+・8時間加速: ${count8h}個
+・1時間加速: ${count1h}個
+・5分加速: ${count5m}個
+・1分加速: ${count1m}個
+合計: ${totalCount}個 (${rem > 0 ? `余り: ${rem.toFixed(1)}秒` : '余り0秒 ぴったり'})
+---------------------------------
+【🎯 単体使用時の必要個数】
+・8時間加速だけ: ${formatSingleForCopy(8 * 3600)}
+・1時間加速だけ: ${formatSingleForCopy(3600)}
+・5分加速だけ: ${formatSingleForCopy(300)}
+・1分加速だけ: ${formatSingleForCopy(60)}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`📋 【コピー完了】\n加速アイテム計算の内訳をクリップボードにコピーしました！`);
+  }).catch(() => {
+    alert('コピーに失敗しました。');
+  });
+}
+
+// Copy Converter Output Value
+function copyConverterValue(type) {
+  const normalized = normalizeTimeRollover(calcActiveResultSec);
+  let text = '';
+  if (type === 'hms') text = normalized.hmsStr;
+  else if (type === 'ms') text = normalized.msColonStr;
+  else if (type === 'sec') text = normalized.rawSecStr;
+
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`📋 【コピー完了】\n「${text}」をクリップボードにコピーしました！`);
+  });
+}
+
+// Transfers calculated / converted time directly to Simple Mode fields ('my' | 'enemy' | 'rem')
+function transferCalcResultToSimple(targetField) {
+  let sec = calcActiveResultSec;
+  if (!sec && state.calc.expression) {
+    sec = parseTimeFormulaExpression(state.calc.expression);
+  }
+
+  const normalized = normalizeTimeRollover(sec);
+  const colonVal = normalized.msColonStr;
+
+  let fieldName = '';
+  if (targetField === 'my') {
+    const input = document.getElementById('simple-my-march');
+    if (input) input.value = colonVal;
+    fieldName = '自分の行軍時間';
+  } else if (targetField === 'enemy') {
+    const input = document.getElementById('simple-enemy-march');
+    if (input) input.value = colonVal;
+    fieldName = '相手の行軍時間';
+  } else if (targetField === 'rem') {
+    const input = document.getElementById('simple-remaining-time');
+    if (input) input.value = colonVal;
+    fieldName = '集結/行軍 残り時間';
+  }
+
+  alert(`📤 【反映完了】\n${fieldName} に「${colonVal}」をセットしました！`);
+  closeCalcModal();
+}
+
+function transferConverterToSimple(targetField) {
+  transferCalcResultToSimple(targetField);
 }
 
 function saveCalcHistory(expr, result) {
@@ -1467,13 +1876,22 @@ function renderCalcHistory() {
     div.innerHTML = `
       <div class="flex justify-between items-center">
         <span class="text-gray-300 font-mono">${item.expr} = <strong class="text-cyan-300">${item.result}</strong></span>
-        <button class="btn-game btn-xs btn-secondary" onclick="useHistoryResult('${item.result}')">再利用</button>
+        <div class="flex gap-1">
+          <button class="btn-game btn-xs btn-secondary text-[11px] px-1.5 py-0.5" onclick="useHistoryResult('${item.result}')">再利用</button>
+          <button class="btn-game btn-xs bg-cyan-950 border border-cyan-500/50 text-cyan-300 text-[10px] px-1 py-0.5" onclick="transferHistoryToSimple('${item.result}')">反映</button>
+        </div>
       </div>
-      <input type="text" class="game-input text-xs" style="height:28px;" placeholder="メモを入力... (例: 砦差し込み用)" 
+      <input type="text" class="game-input text-xs" style="height:26px;" placeholder="メモを入力... (例: 砦差し込み用)" 
              value="${item.note || ''}" onchange="updateCalcHistoryNote(${item.id}, this.value)">
     `;
     container.appendChild(div);
   });
+}
+
+function transferHistoryToSimple(resStr) {
+  const sec = parseFlexibleInputToSeconds(resStr);
+  calcActiveResultSec = sec;
+  transferCalcResultToSimple('my');
 }
 
 function updateCalcHistoryNote(id, noteVal) {
@@ -1734,7 +2152,7 @@ function applyThemeColors(cardBgOverride) {
 // --- Modal Openers & Controls ---
 function openSettingsModal() { document.getElementById('settings-modal').classList.add('open'); }
 function closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); }
-function openCalcModal() { renderCalcHistory(); document.getElementById('calc-modal').classList.add('open'); switchCalcTab('normal'); }
+function openCalcModal() { renderCalcHistory(); document.getElementById('calc-modal').classList.add('open'); switchCalcTab('time'); }
 function closeCalcModal() { document.getElementById('calc-modal').classList.remove('open'); }
 function openHistoryModal() { renderHistoryList(); document.getElementById('history-modal').classList.add('open'); }
 function closeHistoryModal() { document.getElementById('history-modal').classList.remove('open'); }
