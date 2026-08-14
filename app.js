@@ -2281,6 +2281,10 @@ function loadAppSettings() {
   // Restore simple audio mute state (v1.03.09)
   const isAudioMuted = localStorage.getItem('wos_simple_audio_muted') === 'true';
   setSimpleAudioMuteState(isAudioMuted);
+
+  // Restore alliance features visibility state (v1.03.64: default true or user preference)
+  const isAllianceVisible = state.settings.showAllianceFeatures !== false;
+  setAllianceFeatureVisible(isAllianceVisible);
 }
 
 // v1.03.09 Audio Mute Control for Simple Mode
@@ -2633,6 +2637,43 @@ function toggleSimpleAdjustButtons(forceState) {
 
   state.settings.hideSimpleAdjustButtons = isHidden;
   saveAppSettings();
+}
+
+// v1.03.64 Alliance Features (Chat Copy & Timeline) Visibility Switch
+function toggleAllianceFeature() {
+  const currentVisible = state.settings.showAllianceFeatures !== false;
+  setAllianceFeatureVisible(!currentVisible);
+}
+
+function setAllianceFeatureVisible(isVisible) {
+  state.settings.showAllianceFeatures = isVisible;
+  saveAppSettings();
+
+  const copyContainer = document.getElementById('group-simple-alliance-controls');
+  const timelineCard = document.getElementById('card-alliance-timeline');
+  const btnToggle = document.getElementById('btn-toggle-alliance-mode');
+  const iconToggle = document.getElementById('icon-toggle-alliance-mode');
+  const labelToggle = document.getElementById('label-toggle-alliance-mode');
+  const settingCheckbox = document.getElementById('setting-show-alliance-features');
+
+  if (copyContainer) {
+    copyContainer.style.display = isVisible ? 'block' : 'none';
+  }
+  if (timelineCard) {
+    timelineCard.style.display = isVisible ? 'block' : 'none';
+  }
+  if (btnToggle) {
+    btnToggle.className = isVisible ? "btn-game btn-xs btn-primary flex items-center gap-0.5 whitespace-nowrap px-1.5 active" : "btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5";
+  }
+  if (iconToggle) {
+    iconToggle.className = isVisible ? "fa-solid fa-users text-yellow-300" : "fa-solid fa-users-slash text-gray-400";
+  }
+  if (labelToggle) {
+    labelToggle.textContent = isVisible ? "同盟ON" : "同盟OFF";
+  }
+  if (settingCheckbox) {
+    settingCheckbox.checked = isVisible;
+  }
 }
 
 function setSimpleStatusMode(mode) {
