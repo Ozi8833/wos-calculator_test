@@ -3778,8 +3778,9 @@ function updateAllianceCopyButtons() {
   const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
   const formatModeTitle = allianceCopyFormatMode === 'compact' ? '超短縮' : '標準';
 
-  // Standard limit: 10 per message. Compact limit: 20 per message.
-  const limitPerChunk = allianceCopyFormatMode === 'compact' ? 20 : 10;
+  // Whiteout Survival chat allows max ~10 lines per message before stripping newlines.
+  // Header is 1-2 lines + 8 members = 9-10 lines (100% safe across all devices!)
+  const limitPerChunk = 8;
 
   if (selectedCount <= limitPerChunk) {
     // Single Button
@@ -3793,7 +3794,7 @@ function updateAllianceCopyButtons() {
     const totalParts = Math.ceil(selectedCount / limitPerChunk);
     let html = `
       <div class="text-[10px] text-yellow-300 font-bold bg-yellow-950/60 p-1.5 rounded border border-yellow-500/40 text-center">
-        ⚠️ 文字数制限対策: ${selectedCount}名を ${totalParts}回 に自動分割しました（タップ順にチャットへ送信）
+        ⚠️ ホワサバ改行制限対策: ${selectedCount}名を 8名ずつ(${totalParts}回) に自動分割（タップ順にチャット送信）
       </div>
       <div class="grid grid-cols-${Math.min(totalParts, 2)} gap-1.5">
     `;
@@ -3844,7 +3845,7 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
   }
 
   const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
-  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '集結中' : '行軍中';
+  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
   const sortModeTitle = allianceCopySortMode === 'time' ? '出発順' : '名前順';
 
   // Apply Chunking if requested
@@ -3859,7 +3860,7 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
 
   let text = '';
   if (allianceCopyFormatMode === 'compact') {
-    // --- ⚡️ 超短縮形式 (Compact Mode: 1行約15文字) ---
+    // --- ⚡️ 超短縮形式 (Compact Mode: 1行で綺麗に収まる) ---
     text = `⚔️【一斉発車】${statusModeName} 着弾${formatTimeHHMMSS(enemyLandDate)}${partNote}\n`;
     targetItems.forEach(item => {
       const m = item.member;
@@ -3868,17 +3869,14 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
     });
   } else {
     // --- 📄 標準形式 (Standard Mode) ---
-    text = `⚔️【同盟一斉差し込み発車指示】 (${tzStr}・${sortModeTitle}${partNote})
-🎯 相手状態: 相手${statusModeName} (着弾予定 ${formatTimeHHMMSS(enemyLandDate)})
----------------------------------
+    text = `⚔️【同盟一斉発車指示】(${tzStr}・${sortModeTitle}${partNote})
+🎯 ${statusModeName} (着弾 ${formatTimeHHMMSS(enemyLandDate)})
 `;
     targetItems.forEach(item => {
       const m = item.member;
       const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
-      text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr} 発車\n`;
+      text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr}\n`;
     });
-    text += `---------------------------------
-※各自の行軍時間に合わせて自動最適化済み`;
   }
 
   navigator.clipboard.writeText(text).then(() => {
@@ -3923,7 +3921,7 @@ function toggleHelpTooltip(event, helpKey) {
     'status-mode': 'ホワサバ内の集結画面に表示されている相手(敵)が【集結中】もしくは【行軍中】かを選択します。',
     'alliance-timeline': '【送信選択】で選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。行をタップすると黄色枠で注目トラッキングできます。',
     'copy-order': '同盟チャットに指示を貼り付ける際、名前順で並べるか、発車時刻が早い順で並べるかを選択できます。',
-    'chat-format': '【ホワサバのチャット文字数制限対策】<br>ホワサバ内チャットには文字数制限があります。<br>・<b>📄 標準形式</b>: 丁寧な指示文（約10名前後向け）<br>・<b>⚡️ 超短縮形式</b>: 1行を極限まで短縮（20名以上でも1発貼り付け可能！）<br>※人数が多い場合は自動で【Part 1】【Part 2】と分割コピーボタンが出現し、順番に押して貼るだけで確実に届きます！',
+    'chat-format': '【ホワサバのチャット改行・文字数制限対策】<br>ホワサバのチャットは1メッセージあたり最大10行前後の制限があります。<br>・<b>📄 標準形式</b>: 詳細な発車指示文<br>・<b>⚡️ 超短縮形式</b>: 1行を極限まで短縮したコンパクト形式<br>※人数が8名を超える場合は、改行潰れを防ぐため自動で【Part 1】【Part 2】と8名ずつ分割コピーボタンが出現します！',
     'member-manage': '同盟メンバーの追加・編集・削除や、名前・行軍時間の一括登録・テンプレート読み込みを行います。',
     'member-select': '同盟一斉発車のスケジュール計算および個別指示文生成の対象とするメンバーをチェックボックスで選択します。',
     'calc-now': '【現在時刻代入】ボタンを押すと、時計調整で同期されている現在のリアルタイム（時:分:秒）を電卓に一発セットします。',
