@@ -2282,8 +2282,8 @@ function loadAppSettings() {
   const isAudioMuted = localStorage.getItem('wos_simple_audio_muted') === 'true';
   setSimpleAudioMuteState(isAudioMuted);
 
-  // Restore alliance features visibility state (v1.03.64: default true or user preference)
-  const isAllianceVisible = state.settings.showAllianceFeatures !== false;
+  // Restore alliance features visibility state (v1.03.65: default false for clean individual use)
+  const isAllianceVisible = state.settings.showAllianceFeatures === true;
   setAllianceFeatureVisible(isAllianceVisible);
 }
 
@@ -2641,7 +2641,7 @@ function toggleSimpleAdjustButtons(forceState) {
 
 // v1.03.64 Alliance Features (Chat Copy & Timeline) Visibility Switch
 function toggleAllianceFeature() {
-  const currentVisible = state.settings.showAllianceFeatures !== false;
+  const currentVisible = state.settings.showAllianceFeatures === true;
   setAllianceFeatureVisible(!currentVisible);
 }
 
@@ -3927,6 +3927,9 @@ function toggleHelpTooltip(event, helpKey) {
   }
 
   const helpTexts = {
+    'simple-sound': '【🔊 発車カウントダウン音声】<br>発車3秒前からの「3、2、1、発車！」音声アナウンス・ビープ音のON/OFFを切り替えます。',
+    'simple-adjust': '【🎛️ 調整ボタン表示】<br>集結残り時間の調整ボタン（[0分〜5分] や [00s〜50s] など）の表示/非表示を切り替えます。',
+    'simple-alliance': '【👥 同盟チャット・タイムライン機能】<br>同盟員全員の発車スケジュールを一覧表示する「タイムライン」や、チャットへの一括指示コピー機能の表示/非表示を切り替えます。<br>※個人利用時はOFFにしておくことで画面をスッキリ広々と利用できます！',
     'my-march': '自分が出征してターゲット(砦や王城等)に到着するまでの時間（分:秒）を入力します。※ホワサバ内の出征画面右下に表示されています。',
     'enemy-march': '相手(敵)が出征してターゲット(砦や王城等)に到着する時間を入力します。※ホワサバ内の集結画面で集結中から行軍中に切り替わった際の秒数を確認します。',
     'enemy-rem': 'ホワサバ内の集結画面に表示されている集結中時間を入力します。※画面上部の【調整表示ボタン】を押すと調整同期ボタンが表示されます。',

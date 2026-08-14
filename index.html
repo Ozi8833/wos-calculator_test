@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.64 βテスト版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.03.65 βテスト版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.03.64">
+  <link rel="stylesheet" href="style.css?v=1.03.65">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
         <!-- Top Title Header (Above Image Artwork) -->
         <div class="splash-top-header mb-2">
           <h1 class="splash-title-text">⚔️ WHITEOUT SURVIVAL</h1>
-          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.64 βテスト版</p>
+          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.03.65 βテスト版</p>
         </div>
 
         <!-- Square Artwork Container -->
@@ -48,7 +48,7 @@
         <div class="brand flex items-center justify-center gap-1.5 w-full">
           <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-base sm:text-lg"></i>
           <span class="font-black text-cyan-400 whitespace-nowrap text-sm sm:text-base tracking-wide">WOS 差込計算</span>
-          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.03.64 β</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.03.65 β</span>
         </div>
 
         <!-- 2nd Row: Action Buttons Bar -->
@@ -175,21 +175,37 @@
 
     <!-- Mode v1.02.04 Trial: Super Simple Launch Mode Card (Status Mode Toggle: Rally / March) -->
     <div class="glass-card border-2 border-yellow-400/60 bg-yellow-950/20 my-3 shadow-xl" id="card-simple-trial">
-      <div class="flex items-center justify-between border-b border-yellow-500/30 pb-2 mb-2 gap-1">
-        <div class="text-xs sm:text-sm font-black text-yellow-300 flex items-center gap-1 whitespace-nowrap">
-          <i class="fa-solid fa-bolt text-yellow-400"></i> 【シングルモード(試作)】
+      <!-- Header: Title on Top, 3 Function Buttons with Help Icons on Bottom -->
+      <div class="border-b border-yellow-500/30 pb-2 mb-2.5 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="text-xs sm:text-sm font-black text-yellow-300 flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fa-solid fa-bolt text-yellow-400"></i> 【シングルモード(試作)】
+          </div>
+          <span class="text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 font-bold px-2 py-0.5 rounded border border-yellow-400/40 whitespace-nowrap">集結 / 行軍 差し込み</span>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <button id="btn-toggle-simple-sound" class="btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5" onclick="toggleSimpleAudioMute()" title="発車カウントダウン音のON/OFF">
-            <i id="icon-toggle-simple-sound" class="fa-solid fa-volume-high text-yellow-400"></i> <span id="label-toggle-simple-sound">音声ON</span>
-          </button>
-          <button id="btn-toggle-simple-adjust" class="btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5" onclick="toggleSimpleAdjustButtons()" title="調整ボタンの表示/非表示">
-            <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders"></i> <span id="label-toggle-simple-adjust">調整表示</span>
-          </button>
-          <button id="btn-toggle-alliance-mode" class="btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5" onclick="toggleAllianceFeature()" title="同盟チャットコピー＆タイムライン機能のON/OFF">
-            <i id="icon-toggle-alliance-mode" class="fa-solid fa-users text-cyan-400"></i> <span id="label-toggle-alliance-mode">同盟ON</span>
-          </button>
-          <span class="text-xs bg-yellow-500/20 text-yellow-300 font-bold px-2 py-0.5 rounded border border-yellow-400/40 hidden sm:inline-block whitespace-nowrap">集結/行軍 モード選択</span>
+        
+        <!-- 3 Feature Buttons Grid with ? Help Icons -->
+        <div class="grid grid-cols-3 gap-1.5">
+          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-simple-sound" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleSimpleAudioMute()" title="発車カウントダウン音のON/OFF">
+              <i id="icon-toggle-simple-sound" class="fa-solid fa-volume-high text-yellow-400"></i> <span id="label-toggle-simple-sound">音声ON</span>
+            </button>
+            <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'simple-sound')" title="音声の説明">❓</span>
+          </div>
+
+          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-simple-adjust" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleSimpleAdjustButtons()" title="調整ボタンの表示/非表示">
+              <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders"></i> <span id="label-toggle-simple-adjust">調整表示</span>
+            </button>
+            <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'simple-adjust')" title="調整ボタンの説明">❓</span>
+          </div>
+
+          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-alliance-mode" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleAllianceFeature()" title="同盟チャットコピー＆タイムライン機能のON/OFF">
+              <i id="icon-toggle-alliance-mode" class="fa-solid fa-users text-cyan-400"></i> <span id="label-toggle-alliance-mode">同盟ON</span>
+            </button>
+            <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'simple-alliance')" title="同盟機能の説明">❓</span>
+          </div>
         </div>
       </div>
 
@@ -548,7 +564,7 @@
     </button>
   </nav>
 
-  <!-- Triple Mode Calculator Modal (v1.03.64: Normal / Time Calc / Time Converter / Speedup Optimizer) -->
+  <!-- Triple Mode Calculator Modal (v1.03.65: Normal / Time Calc / Time Converter / Speedup Optimizer) -->
   <div id="calc-modal" class="modal-backdrop">
     <div class="modal-body max-w-md">
       <!-- Top Tab Switchers (Strict 1-Row Grid Layout for Mobile & PC) -->
@@ -812,7 +828,7 @@
   <div id="settings-modal" class="modal-backdrop">
     <div class="modal-body">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.64 βテスト版)</h3>
+        <h3 class="text-lg font-bold text-cyan-400"><i class="fa-solid fa-gear mr-2"></i> アプリ設定 (v1.03.65 βテスト版)</h3>
         <button class="text-gray-400 text-xl font-bold p-1" onclick="closeSettingsModal()">&times;</button>
       </div>
 
@@ -1065,6 +1081,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.03.64"></script>
+  <script src="app.js?v=1.03.65"></script>
 </body>
 </html>
