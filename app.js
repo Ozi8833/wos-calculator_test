@@ -3734,9 +3734,8 @@ function setAllAllianceSelection(checked) {
   updateAllianceTimeline();
 }
 
-// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode Support: Name / Time & v1.03.58 Format Mode Support: Standard / Compact & Auto-Split)
+// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode: Name / Time & v1.03.63 Unified Clean Format)
 let allianceCopySortMode = localStorage.getItem('wos_alliance_copy_sort_mode') || 'name'; // 'name' or 'time'
-let allianceCopyFormatMode = localStorage.getItem('wos_alliance_copy_format_mode') || 'standard'; // 'standard' or 'compact'
 
 function setAllianceCopySortMode(mode) {
   allianceCopySortMode = mode;
@@ -3756,19 +3755,6 @@ function setAllianceCopySortMode(mode) {
   updateAllianceCopyButtons();
 }
 
-function setAllianceCopyFormatMode(mode) {
-  allianceCopyFormatMode = mode;
-  localStorage.setItem('wos_alliance_copy_format_mode', mode);
-
-  const btnStd = document.getElementById('btn-copy-format-standard');
-  const btnCompact = document.getElementById('btn-copy-format-compact');
-
-  if (btnStd) btnStd.className = `btn-game btn-xs ${mode === 'standard' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
-  if (btnCompact) btnCompact.className = `btn-game btn-xs ${mode === 'compact' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
-
-  updateAllianceCopyButtons();
-}
-
 // Dynamically generate single copy button or auto-split buttons if member count exceeds limits
 function updateAllianceCopyButtons() {
   const container = document.getElementById('alliance-copy-buttons-container');
@@ -3776,17 +3762,16 @@ function updateAllianceCopyButtons() {
 
   const selectedCount = allianceMembers.filter(m => m.selected !== false).length;
   const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
-  const formatModeTitle = allianceCopyFormatMode === 'compact' ? '超短縮' : '標準';
 
   // Whiteout Survival chat allows max ~10 lines per message before stripping newlines.
-  // Header is 1-2 lines + 8 members = 9-10 lines (100% safe across all devices!)
+  // Header is 2 lines + 8 members = 10 lines (100% safe across all devices!)
   const limitPerChunk = 8;
 
   if (selectedCount <= limitPerChunk) {
     // Single Button
     container.innerHTML = `
       <button id="btn-copy-alliance-multi-chat" class="btn-game btn-sm btn-primary w-full py-2 font-black text-xs sm:text-sm tracking-wide shadow flex items-center justify-center gap-1.5 whitespace-nowrap" onclick="copyAllianceMultiChat()">
-        <i class="fa-solid fa-copy text-yellow-300"></i> <span id="label-copy-alliance-multi-chat">📋 選択メンバー全員の指示をコピー (${sortModeTitle}・${formatModeTitle})</span>
+        <i class="fa-solid fa-copy text-yellow-300"></i> <span id="label-copy-alliance-multi-chat">📋 選択メンバー全員の指示をコピー (${sortModeTitle})</span>
       </button>
     `;
   } else {
@@ -3846,7 +3831,7 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
 
   const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
   const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
-  const sortModeTitle = allianceCopySortMode === 'time' ? '出発順' : '名前順';
+  const sortModeTitle = allianceCopySortMode === 'time' ? '出発順' : 'あいうえお順';
 
   // Apply Chunking if requested
   let targetItems = memberWithDates;
@@ -3858,26 +3843,14 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
     partNote = ` (${part}/${totalParts})`;
   }
 
-  let text = '';
-  if (allianceCopyFormatMode === 'compact') {
-    // --- ⚡️ 超短縮形式 (Compact Mode: 1行で綺麗に収まる) ---
-    text = `⚔️【一斉発車】${statusModeName} 着弾${formatTimeHHMMSS(enemyLandDate)}${partNote}\n`;
-    targetItems.forEach(item => {
-      const m = item.member;
-      const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
-      text += `・${m.name}(${formatCountdownMMSS(m.marchSec)})➔${launchTimeStr}\n`;
-    });
-  } else {
-    // --- 📄 標準形式 (Standard Mode) ---
-    text = `⚔️【同盟一斉発車指示】(${tzStr}・${sortModeTitle}${partNote})
-🎯 ${statusModeName} (着弾 ${formatTimeHHMMSS(enemyLandDate)})
-`;
-    targetItems.forEach(item => {
-      const m = item.member;
-      const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
-      text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr}\n`;
-    });
-  }
+  let text = `⚔️【同盟一斉発車指示】(${tzStr}・${sortModeTitle}${partNote})
+🎯 ${statusModeName} (着弾 ${formatTimeHHMMSS(enemyLandDate)})\n`;
+
+  targetItems.forEach(item => {
+    const m = item.member;
+    const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
+    text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr}\n`;
+  });
 
   navigator.clipboard.writeText(text).then(() => {
     alert(`📋 【コピー完了】${partNote ? `【Part ${part}】` : ''}${targetItems.length} 名分の指示文をクリップボードにコピーしました！\nそのままホワサバのチャットへ貼り付けて送信してください！`);
@@ -3892,12 +3865,10 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     loadAllianceMembers();
     setAllianceCopySortMode(allianceCopySortMode);
-    setAllianceCopyFormatMode(allianceCopyFormatMode);
   });
 } else {
   loadAllianceMembers();
   setAllianceCopySortMode(allianceCopySortMode);
-  setAllianceCopyFormatMode(allianceCopyFormatMode);
 }
 
 // v1.03.10 Interactive Help Tooltip System
