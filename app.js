@@ -474,12 +474,17 @@ function startMarchTimer(id, skipRender = false) {
 }
 
 function saveMyMarchTime(valStr) {
+  if (!valStr) return;
   localStorage.setItem('wos_my_march_time', valStr);
 }
 
 function loadMyMarchTime() {
   const saved = localStorage.getItem('wos_my_march_time');
   if (saved) {
+    const simpleMyInput = document.getElementById('simple-my-march');
+    if (simpleMyInput) {
+      simpleMyInput.value = saved;
+    }
     const myInput = document.getElementById('my-march-time');
     if (myInput) {
       myInput.value = saved;
@@ -1995,6 +2000,7 @@ function transferCalcResultToSimple(targetField) {
   if (targetField === 'my') {
     const input = document.getElementById('simple-my-march');
     if (input) input.value = colonVal;
+    saveMyMarchTime(colonVal);
     fieldName = '自分の行軍時間';
   } else if (targetField === 'enemy') {
     const input = document.getElementById('simple-enemy-march');
@@ -2475,6 +2481,12 @@ function updateTimezoneUI() {
 
   // My march time save handler
   document.getElementById('my-march-time')?.addEventListener('change', (e) => {
+    saveMyMarchTime(e.target.value);
+  });
+  document.getElementById('simple-my-march')?.addEventListener('change', (e) => {
+    saveMyMarchTime(e.target.value);
+  });
+  document.getElementById('simple-my-march')?.addEventListener('input', (e) => {
     saveMyMarchTime(e.target.value);
   });
 
