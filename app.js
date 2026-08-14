@@ -1306,6 +1306,10 @@ function switchCalcTab(mode) {
   const keypad = document.getElementById('calc-keypad');
   const historyPanel = document.getElementById('calc-history-panel');
 
+  const displayTitle = document.getElementById('calc-display-title');
+  const displayHelpBtn = document.getElementById('calc-display-help-btn');
+  const displaySubhint = document.getElementById('calc-display-subhint');
+
   if (tabNormal) tabNormal.className = `btn-game btn-xs ${mode === 'normal' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
   if (tabTime) tabTime.className = `btn-game btn-xs ${mode === 'time' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
   if (tabConv) tabConv.className = `btn-game btn-xs ${mode === 'converter' ? 'btn-primary active' : 'btn-secondary'} font-bold px-2 py-1 text-xs`;
@@ -1315,6 +1319,30 @@ function switchCalcTab(mode) {
   if (convPanel) convPanel.style.display = mode === 'converter' ? 'block' : 'none';
   if (speedupPanel) speedupPanel.style.display = mode === 'speedup' ? 'block' : 'none';
   if (historyPanel) historyPanel.style.display = (mode === 'normal' || mode === 'time') ? 'block' : 'none';
+
+  // Dynamic Display Header Syncing for each mode
+  if (displayTitle && displayHelpBtn && displaySubhint) {
+    if (mode === 'time') {
+      displayTitle.textContent = '⏱️ 時間計算 入力式';
+      displayHelpBtn.setAttribute('onclick', "toggleHelpTooltip(event, 'calc-keypad-time')");
+      displayHelpBtn.style.display = 'inline-flex';
+      displaySubhint.textContent = 'コロン(:)で時分秒計算';
+    } else if (mode === 'converter') {
+      displayTitle.textContent = '🔄 相互変換 入力欄';
+      displayHelpBtn.setAttribute('onclick', "toggleHelpTooltip(event, 'calc-keypad-converter')");
+      displayHelpBtn.style.display = 'inline-flex';
+      displaySubhint.textContent = '秒/分/時 または コロン入力';
+    } else if (mode === 'speedup') {
+      displayTitle.textContent = '⚡️ 加速計算 入力欄';
+      displayHelpBtn.setAttribute('onclick', "toggleHelpTooltip(event, 'calc-keypad-speedup')");
+      displayHelpBtn.style.display = 'inline-flex';
+      displaySubhint.textContent = '短縮したい時間を入力';
+    } else {
+      displayTitle.textContent = '🔢 通常電卓';
+      displayHelpBtn.style.display = 'none';
+      displaySubhint.textContent = '四則演算 (+ - × ÷)';
+    }
+  }
 
   state.calc.expression = '';
   renderCalcKeypad();
@@ -1353,15 +1381,120 @@ function renderCalcKeypad() {
 }
 
 function handleCalcKey(key) {
+  const units = ['時', '分', '秒', ':'];
+  const ops = ['+', '-', '×', '÷'];
+  let expr = state.calc.expression;
+
   if (key === 'C') {
     state.calc.expression = '';
   } else if (key === '⌫') {
-    state.calc.expression = state.calc.expression.slice(0, -1);
+    state.calc.expression = expr.slice(0, -1);
   } else if (key === '=') {
     evaluateCalc();
     return;
+  } else if (units.includes(key)) {
+    // 1. Cannot start with units (except colon for :30 seconds shorthand)
+    if (!expr && key !== ':') {
+      return;
+    }
+
+    const lastChar = expr.slice(-1);
+
+    // 2. If the last character is already a unit, replace it directly
+    if (units.includes(lastChar)) {
+      expr = expr.slice(0, -1);
+    }
+
+    // 3. For time operators '+', '-', we look at the current active segment (after last operator)
+    const segments = expr.split(/[+\-×÷]/);
+    const curSegment = segments[segments.length - 1] || '';
+
+    if (key === ':') {
+      // Cannot mix colon with Kanji units (時/分/秒)
+      if (curSegment.includes('時') || curSegment.includes('分') || curSegment.includes('秒')) {
+        return;
+      }
+      // Cannot put colon immediately after colon
+      if (lastChar === ':') {
+        return;
+      }
+      // Maximum 2 colons per segment (HH:MM:SS)
+      const colonCount = (curSegment.match(/:/g) || []).length;
+      if (colonCount >= 2) {
+        return;
+      }
+      state.calc.expression = expr + key;
+    } else {
+      // Kanji units: '時', '分', '秒'
+      // Cannot mix Kanji units if segment already has a colon
+      if (curSegment.includes(':')) {
+        return;
+      }
+
+      // Check chronological order & deduplication:
+      // '時' can only be entered if no '時', '分', or '秒' already exists in current segment
+      if (key === '時') {
+        if (curSegment.includes('時') || curSegment.includes('分') || curSegment.includes('秒')) {
+          return;
+        }
+      }
+      // '分' can only be entered if no '分' or '秒' already exists
+      else if (key === '分') {
+        if (curSegment.includes('分') || curSegment.includes('秒')) {
+          return;
+        }
+      }
+      // '秒' can only be entered if no '秒' already exists
+      else if (key === '秒') {
+        if (curSegment.includes('秒')) {
+          return;
+        }
+      }
+
+      state.calc.expression = expr + key;
+    }
+  } else if (ops.includes(key)) {
+    if (!expr && key !== '-') return;
+    const lastChar = expr.slice(-1);
+    if (ops.includes(lastChar)) {
+      state.calc.expression = expr.slice(0, -1) + key;
+    } else if (lastChar === ':') {
+      return; // Cannot put operator immediately after colon
+    } else {
+      state.calc.expression = expr + key;
+    }
+  } else if (key === '.') {
+    // Dot guard (Normal Calc mode): max 1 dot per numerical segment
+    const segments = expr.split(/[+\-×÷]/);
+    const curSegment = segments[segments.length - 1] || '';
+    if (curSegment.includes('.') || curSegment.includes('時') || curSegment.includes('分') || curSegment.includes('秒') || curSegment.includes(':')) {
+      return;
+    }
+    state.calc.expression = expr + (curSegment ? '.' : '0.');
   } else {
-    state.calc.expression += key;
+    // Number input (0-9)
+    const lastChar = expr.slice(-1);
+
+    // 1. Guard: Cannot append numbers after '秒' (秒 is terminal smallest unit)
+    if (lastChar === '秒') {
+      return;
+    }
+
+    // 2. Guard: Max digit length per number segment (max 10 digits to prevent overflow)
+    const segments = expr.split(/[+\-×÷時分秒:]/);
+    const curNumberSegment = segments[segments.length - 1] || '';
+    if (curNumberSegment.length >= 10) {
+      return;
+    }
+
+    // 3. Leading zero cleanup (e.g. '0' then '5' becomes '5', avoiding '0005')
+    if (curNumberSegment === '0' && key !== '0') {
+      state.calc.expression = expr.slice(0, -1) + key;
+    } else if (curNumberSegment === '0' && key === '0') {
+      return; // Ignore repetitive leading zeros
+    } else {
+      state.calc.expression = expr + key;
+    }
   }
 
   updateCalcDisplay();
@@ -1677,30 +1810,49 @@ function updateSpeedupOptimizer() {
   if (s1mNum) s1mNum.textContent = res1m.num;
   if (s1mStatus) s1mStatus.innerHTML = res1m.statusHtml;
 
-  // 2. Multi-Item Optimal Mix (Greedy matching by selected units)
+  // 2. Multi-Item Optimal Mix (Greedy matching with terminal round-up by smallest selected unit)
   let rem = totalSec;
   let count8h = 0;
   let count1h = 0;
   let count5m = 0;
   let count1m = 0;
 
-  if (use8h) {
-    count8h = Math.floor(rem / (8 * 3600));
-    rem %= (8 * 3600);
-  }
-  if (use1h) {
-    count1h = Math.floor(rem / 3600);
-    rem %= 3600;
-  }
-  if (use5m) {
-    count5m = Math.floor(rem / 300);
-    rem %= 300;
-  }
-  if (use1m) {
-    count1m = Math.floor(rem / 60);
-    rem %= 60;
+  // Determine available units in descending order
+  const availableUnits = [];
+  if (use8h) availableUnits.push({ key: '8h', sec: 8 * 3600 });
+  if (use1h) availableUnits.push({ key: '1h', sec: 3600 });
+  if (use5m) availableUnits.push({ key: '5m', sec: 300 });
+  if (use1m) availableUnits.push({ key: '1m', sec: 60 });
+
+  if (availableUnits.length > 0 && totalSec > 0) {
+    for (let i = 0; i < availableUnits.length; i++) {
+      const u = availableUnits[i];
+      const isLast = (i === availableUnits.length - 1);
+
+      if (isLast) {
+        // Last available unit rounds UP to fully cover remaining time
+        const c = Math.ceil(rem / u.sec);
+        if (u.key === '8h') count8h += c;
+        else if (u.key === '1h') count1h += c;
+        else if (u.key === '5m') count5m += c;
+        else if (u.key === '1m') count1m += c;
+        rem -= c * u.sec;
+      } else {
+        // Higher units take integer quotients
+        const c = Math.floor(rem / u.sec);
+        if (c > 0) {
+          if (u.key === '8h') count8h += c;
+          else if (u.key === '1h') count1h += c;
+          else if (u.key === '5m') count5m += c;
+          else if (u.key === '1m') count1m += c;
+          rem -= c * u.sec;
+        }
+      }
+    }
   }
 
+  const totalProvidedSec = (count8h * 8 * 3600) + (count1h * 3600) + (count5m * 300) + (count1m * 60);
+  const excessSec = totalProvidedSec - totalSec;
   const totalCount = count8h + count1h + count5m + count1m;
 
   const totalCountElem = document.getElementById('speedup-total-count');
@@ -1717,12 +1869,15 @@ function updateSpeedupOptimizer() {
   if (c1mElem) c1mElem.textContent = count1m.toLocaleString();
 
   if (remElem) {
-    if (rem > 0) {
-      remElem.textContent = `⚠️ カバーしきれない余り: ${rem.toFixed(1)}秒 (1分未満)`;
-      remElem.className = 'text-[10px] text-yellow-400 text-right mt-1 font-mono font-bold';
+    if (totalSec <= 0 || availableUnits.length === 0) {
+      remElem.textContent = '';
+    } else if (excessSec > 0) {
+      const normExcess = normalizeTimeRollover(excessSec);
+      remElem.textContent = `(+${normExcess.hmsStr}過剰⚠️)`;
+      remElem.className = 'text-[11px] text-red-400 text-right mt-1 font-mono font-bold';
     } else {
-      remElem.textContent = '✨ 余りなし (ぴったりカバー)';
-      remElem.className = 'text-[10px] text-cyan-400 text-right mt-1 font-mono';
+      remElem.textContent = '(✨ぴったり)';
+      remElem.className = 'text-[11px] text-cyan-400 text-right mt-1 font-mono font-bold';
     }
   }
 }
@@ -1738,28 +1893,56 @@ function copySpeedupOptimizationResult() {
   const use1m = document.getElementById('speedup-use-1m')?.checked ?? true;
 
   let rem = totalSec;
-  let count8h = use8h ? Math.floor(rem / (8 * 3600)) : 0;
-  if (use8h) rem %= (8 * 3600);
+  let count8h = 0;
+  let count1h = 0;
+  let count5m = 0;
+  let count1m = 0;
 
-  let count1h = use1h ? Math.floor(rem / 3600) : 0;
-  if (use1h) rem %= 3600;
+  const availableUnits = [];
+  if (use8h) availableUnits.push({ key: '8h', sec: 8 * 3600 });
+  if (use1h) availableUnits.push({ key: '1h', sec: 3600 });
+  if (use5m) availableUnits.push({ key: '5m', sec: 300 });
+  if (use1m) availableUnits.push({ key: '1m', sec: 60 });
 
-  let count5m = use5m ? Math.floor(rem / 300) : 0;
-  if (use5m) rem %= 300;
+  if (availableUnits.length > 0 && totalSec > 0) {
+    for (let i = 0; i < availableUnits.length; i++) {
+      const u = availableUnits[i];
+      const isLast = (i === availableUnits.length - 1);
 
-  let count1m = use1m ? Math.floor(rem / 60) : 0;
-  if (use1m) rem %= 60;
+      if (isLast) {
+        const c = Math.ceil(rem / u.sec);
+        if (u.key === '8h') count8h += c;
+        else if (u.key === '1h') count1h += c;
+        else if (u.key === '5m') count5m += c;
+        else if (u.key === '1m') count1m += c;
+        rem -= c * u.sec;
+      } else {
+        const c = Math.floor(rem / u.sec);
+        if (c > 0) {
+          if (u.key === '8h') count8h += c;
+          else if (u.key === '1h') count1h += c;
+          else if (u.key === '5m') count5m += c;
+          else if (u.key === '1m') count1m += c;
+          rem -= c * u.sec;
+        }
+      }
+    }
+  }
 
+  const totalProvidedSec = (count8h * 8 * 3600) + (count1h * 3600) + (count5m * 300) + (count1m * 60);
+  const excessSec = totalProvidedSec - totalSec;
   const totalCount = count8h + count1h + count5m + count1m;
 
   const formatSingleForCopy = (unitSec) => {
     if (totalSec <= 0) return '0個';
     const count = Math.ceil(totalSec / unitSec);
-    const excessSec = (count * unitSec) - totalSec;
-    if (excessSec <= 0) return `${count}個 (✨ぴったり)`;
-    const excessStr = normalizeTimeRollover(excessSec).hmsStr;
+    const itemExcessSec = (count * unitSec) - totalSec;
+    if (itemExcessSec <= 0) return `${count}個 (✨ぴったり)`;
+    const excessStr = normalizeTimeRollover(itemExcessSec).hmsStr;
     return `${count}個 (+${excessStr}過剰⚠️)`;
   };
+
+  const optStatusStr = excessSec > 0 ? `(+${normalizeTimeRollover(excessSec).hmsStr}過剰⚠️)` : '(✨ぴったり)';
 
   let text = `⚡️【ホワサバ時間加速 必要個数計算】
 🎯 対象時間: ${normalized.hmsStr} (${normalized.rawSecStr}秒)
@@ -1769,7 +1952,7 @@ function copySpeedupOptimizationResult() {
 ・1時間加速: ${count1h}個
 ・5分加速: ${count5m}個
 ・1分加速: ${count1m}個
-合計: ${totalCount}個 (${rem > 0 ? `余り: ${rem.toFixed(1)}秒` : '余り0秒 ぴったり'})
+合計: ${totalCount}個 ${optStatusStr}
 ---------------------------------
 【🎯 単体使用時の必要個数】
 ・8時間加速だけ: ${formatSingleForCopy(8 * 3600)}
@@ -1829,6 +2012,28 @@ function transferCalcResultToSimple(targetField) {
 
 function transferConverterToSimple(targetField) {
   transferCalcResultToSimple(targetField);
+}
+
+// Transfer Converter output directly into Time Calculation mode input by selected format ('hms' | 'ms' | 'sec')
+function transferConverterToTimeCalc(type = 'hms') {
+  const normalized = normalizeTimeRollover(calcActiveResultSec);
+  let valueToSet = '';
+
+  if (type === 'hms') {
+    // Format as H:MM:SS (e.g. 1666:40:00 or 02:46:40)
+    const pad = (n) => String(n).padStart(2, '0');
+    valueToSet = `${normalized.hours}:${pad(normalized.mins)}:${pad(normalized.secs)}`;
+  } else if (type === 'ms') {
+    // Format as MM:SS (e.g. 100000:00 or 166:40)
+    valueToSet = normalized.msColonStr;
+  } else if (type === 'sec') {
+    // Format as raw seconds integer
+    valueToSet = String(Math.floor(normalized.totalSec));
+  }
+
+  switchCalcTab('time');
+  state.calc.expression = valueToSet;
+  updateCalcDisplay();
 }
 
 function saveCalcHistory(expr, result) {
@@ -2428,12 +2633,12 @@ function setSimpleStatusMode(mode) {
   if (mode === 'rally') {
     if (btnRally) btnRally.className = "btn-game btn-sm flex-1 font-bold btn-primary active shadow";
     if (btnMarch) btnMarch.className = "btn-game btn-sm flex-1 font-bold btn-secondary";
-    if (labelRem) labelRem.textContent = "相手の集結残り時間 (MM:SS)";
+    if (labelRem) labelRem.innerHTML = '相手の集結残り時間 (MM:SS) <span class="help-icon-btn" onclick="toggleHelpTooltip(event, \'enemy-rem\')" title="解説を見る">❓</span>';
     if (groupEnemyMarch) groupEnemyMarch.style.display = "block";
   } else {
     if (btnRally) btnRally.className = "btn-game btn-sm flex-1 font-bold btn-secondary";
     if (btnMarch) btnMarch.className = "btn-game btn-sm flex-1 font-bold btn-primary active shadow";
-    if (labelRem) labelRem.textContent = "相手の行軍残り時間 (MM:SS)";
+    if (labelRem) labelRem.innerHTML = '相手の行軍残り時間 (MM:SS) <span class="help-icon-btn" onclick="toggleHelpTooltip(event, \'enemy-rem\')" title="解説を見る">❓</span>';
     if (groupEnemyMarch) groupEnemyMarch.style.display = "none";
   }
 }
@@ -3058,6 +3263,8 @@ function updateAllianceMemberBadges() {
   if (selBadge) selBadge.textContent = selected;
   if (totalBadge) totalBadge.textContent = total;
   if (modalCount) modalCount.textContent = total;
+
+  updateAllianceCopyButtons();
 }
 
 // Modal Handlers
@@ -3515,8 +3722,9 @@ function setAllAllianceSelection(checked) {
   updateAllianceTimeline();
 }
 
-// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode Support: Name / Time)
+// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode Support: Name / Time & v1.03.58 Format Mode Support: Standard / Compact & Auto-Split)
 let allianceCopySortMode = localStorage.getItem('wos_alliance_copy_sort_mode') || 'name'; // 'name' or 'time'
+let allianceCopyFormatMode = localStorage.getItem('wos_alliance_copy_format_mode') || 'standard'; // 'standard' or 'compact'
 
 function setAllianceCopySortMode(mode) {
   allianceCopySortMode = mode;
@@ -3524,22 +3732,75 @@ function setAllianceCopySortMode(mode) {
 
   const btnName = document.getElementById('btn-copy-sort-name');
   const btnTime = document.getElementById('btn-copy-sort-time');
-  const labelBtn = document.getElementById('label-copy-alliance-multi-chat');
   const hintTextElem = document.getElementById('alliance-selection-sort-hint');
 
   if (btnName) btnName.className = `btn-game btn-xs ${mode === 'name' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
   if (btnTime) btnTime.className = `btn-game btn-xs ${mode === 'time' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
 
   const modeName = mode === 'name' ? 'あいうえお順' : '出発時間順';
-  if (labelBtn) {
-    labelBtn.textContent = `📋 選択メンバー全員の指示をコピー (${modeName})`;
-  }
   if (hintTextElem) {
     hintTextElem.textContent = `(${modeName}でコピーされます)`;
   }
+  updateAllianceCopyButtons();
 }
 
-function copyAllianceMultiChat() {
+function setAllianceCopyFormatMode(mode) {
+  allianceCopyFormatMode = mode;
+  localStorage.setItem('wos_alliance_copy_format_mode', mode);
+
+  const btnStd = document.getElementById('btn-copy-format-standard');
+  const btnCompact = document.getElementById('btn-copy-format-compact');
+
+  if (btnStd) btnStd.className = `btn-game btn-xs ${mode === 'standard' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
+  if (btnCompact) btnCompact.className = `btn-game btn-xs ${mode === 'compact' ? 'btn-primary active' : 'btn-secondary'} py-0.5 px-2 text-[11px] font-bold whitespace-nowrap`;
+
+  updateAllianceCopyButtons();
+}
+
+// Dynamically generate single copy button or auto-split buttons if member count exceeds limits
+function updateAllianceCopyButtons() {
+  const container = document.getElementById('alliance-copy-buttons-container');
+  if (!container) return;
+
+  const selectedCount = allianceMembers.filter(m => m.selected !== false).length;
+  const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
+  const formatModeTitle = allianceCopyFormatMode === 'compact' ? '超短縮' : '標準';
+
+  // Standard limit: 10 per message. Compact limit: 20 per message.
+  const limitPerChunk = allianceCopyFormatMode === 'compact' ? 20 : 10;
+
+  if (selectedCount <= limitPerChunk) {
+    // Single Button
+    container.innerHTML = `
+      <button id="btn-copy-alliance-multi-chat" class="btn-game btn-sm btn-primary w-full py-2 font-black text-xs sm:text-sm tracking-wide shadow flex items-center justify-center gap-1.5 whitespace-nowrap" onclick="copyAllianceMultiChat()">
+        <i class="fa-solid fa-copy text-yellow-300"></i> <span id="label-copy-alliance-multi-chat">📋 選択メンバー全員の指示をコピー (${sortModeTitle}・${formatModeTitle})</span>
+      </button>
+    `;
+  } else {
+    // Auto-Split Buttons (Part 1, Part 2, etc.)
+    const totalParts = Math.ceil(selectedCount / limitPerChunk);
+    let html = `
+      <div class="text-[10px] text-yellow-300 font-bold bg-yellow-950/60 p-1.5 rounded border border-yellow-500/40 text-center">
+        ⚠️ 文字数制限対策: ${selectedCount}名を ${totalParts}回 に自動分割しました（タップ順にチャットへ送信）
+      </div>
+      <div class="grid grid-cols-${Math.min(totalParts, 2)} gap-1.5">
+    `;
+
+    for (let part = 1; part <= totalParts; part++) {
+      const startIdx = (part - 1) * limitPerChunk + 1;
+      const endIdx = Math.min(part * limitPerChunk, selectedCount);
+      html += `
+        <button class="btn-game btn-sm btn-accent py-2 font-black text-xs shadow flex items-center justify-center gap-1 whitespace-nowrap" onclick="copyAllianceMultiChat(${part}, ${limitPerChunk})">
+          <i class="fa-solid fa-copy text-yellow-300"></i> 📋 【Part ${part}/${totalParts}】 (${startIdx}〜${endIdx}人目)
+        </button>
+      `;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+}
+
+function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
   if (!simpleLaunchState.isCalculated || !simpleLaunchState.enemyLandDate) {
     alert('⚠️ 【コピー不可】差し込み計算が開始されていないか、リセットされています。\nまず「🎯 差し込み計算スタート！」を押してスケジュールを生成してください。');
     return;
@@ -3565,33 +3826,51 @@ function copyAllianceMultiChat() {
 
   // Sort based on current mode
   if (allianceCopySortMode === 'time') {
-    // Sort by target launch time (earliest first)
     memberWithDates.sort((a, b) => a.targetLaunchDate.getTime() - b.targetLaunchDate.getTime());
   } else {
-    // Sort by Japanese Gojūon (あいうえお順)
     memberWithDates.sort((a, b) => a.member.name.localeCompare(b.member.name, 'ja'));
   }
 
   const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
-  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
-  const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
+  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '集結中' : '行軍中';
+  const sortModeTitle = allianceCopySortMode === 'time' ? '出発順' : '名前順';
 
-  let text = `⚔️【同盟一斉差し込み発車指示】 (${tzStr}・${sortModeTitle})
-🎯 相手状態: ${statusModeName} (着弾予定 ${formatTimeHHMMSS(enemyLandDate)})
+  // Apply Chunking if requested
+  let targetItems = memberWithDates;
+  let partNote = '';
+  if (limitPerChunk > 0) {
+    const totalParts = Math.ceil(memberWithDates.length / limitPerChunk);
+    const startIdx = (part - 1) * limitPerChunk;
+    targetItems = memberWithDates.slice(startIdx, startIdx + limitPerChunk);
+    partNote = ` (${part}/${totalParts})`;
+  }
+
+  let text = '';
+  if (allianceCopyFormatMode === 'compact') {
+    // --- ⚡️ 超短縮形式 (Compact Mode: 1行約15文字) ---
+    text = `⚔️【一斉発車】${statusModeName} 着弾${formatTimeHHMMSS(enemyLandDate)}${partNote}\n`;
+    targetItems.forEach(item => {
+      const m = item.member;
+      const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
+      text += `・${m.name}(${formatCountdownMMSS(m.marchSec)})➔${launchTimeStr}\n`;
+    });
+  } else {
+    // --- 📄 標準形式 (Standard Mode) ---
+    text = `⚔️【同盟一斉差し込み発車指示】 (${tzStr}・${sortModeTitle}${partNote})
+🎯 相手状態: 相手${statusModeName} (着弾予定 ${formatTimeHHMMSS(enemyLandDate)})
 ---------------------------------
 `;
-
-  memberWithDates.forEach(item => {
-    const m = item.member;
-    const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
-    text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr} 発車\n`;
-  });
-
-  text += `---------------------------------
+    targetItems.forEach(item => {
+      const m = item.member;
+      const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
+      text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr} 発車\n`;
+    });
+    text += `---------------------------------
 ※各自の行軍時間に合わせて自動最適化済み`;
+  }
 
   navigator.clipboard.writeText(text).then(() => {
-    alert(`選択中の同盟メンバー ${memberWithDates.length} 名分の発車指示をクリップボードにコピーしました！ (${sortModeTitle})`);
+    alert(`📋 【コピー完了】${partNote ? `【Part ${part}】` : ''}${targetItems.length} 名分の指示文をクリップボードにコピーしました！\nそのままホワサバのチャットへ貼り付けて送信してください！`);
   }).catch(err => {
     console.error('Clipboard copy error:', err);
     alert('コピーに失敗しました。');
@@ -3603,10 +3882,12 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     loadAllianceMembers();
     setAllianceCopySortMode(allianceCopySortMode);
+    setAllianceCopyFormatMode(allianceCopyFormatMode);
   });
 } else {
   loadAllianceMembers();
   setAllianceCopySortMode(allianceCopySortMode);
+  setAllianceCopyFormatMode(allianceCopyFormatMode);
 }
 
 // v1.03.10 Interactive Help Tooltip System
@@ -3630,15 +3911,24 @@ function toggleHelpTooltip(event, helpKey) {
     'status-mode': 'ホワサバ内の集結画面に表示されている相手(敵)が【集結中】もしくは【行軍中】かを選択します。',
     'alliance-timeline': '【送信選択】で選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。行をタップすると黄色枠で注目トラッキングできます。',
     'copy-order': '同盟チャットに指示を貼り付ける際、名前順で並べるか、発車時刻が早い順で並べるかを選択できます。',
+    'chat-format': '【ホワサバのチャット文字数制限対策】<br>ホワサバ内チャットには文字数制限があります。<br>・<b>📄 標準形式</b>: 丁寧な指示文（約10名前後向け）<br>・<b>⚡️ 超短縮形式</b>: 1行を極限まで短縮（20名以上でも1発貼り付け可能！）<br>※人数が多い場合は自動で【Part 1】【Part 2】と分割コピーボタンが出現し、順番に押して貼るだけで確実に届きます！',
     'member-manage': '同盟メンバーの追加・編集・削除や、名前・行軍時間の一括登録・テンプレート読み込みを行います。',
-    'member-select': '同盟一斉発車のスケジュール計算および個別指示文生成の対象とするメンバーをチェックボックスで選択します。'
+    'member-select': '同盟一斉発車のスケジュール計算および個別指示文生成の対象とするメンバーをチェックボックスで選択します。',
+    'calc-now': '【現在時刻代入】ボタンを押すと、時計調整で同期されている現在のリアルタイム（時:分:秒）を電卓に一発セットします。',
+    'calc-transfer': '【📤 自分/相手/残りへ】電卓の計算結果や相互変換した秒数を、差し込み計算の「自分の行軍時間」「相手の行軍時間」「集結残り時間」へワンタップで転送・反映します。',
+    'calc-keypad-time': '【⏱️ 時間計算の入力方法】<br>コロン（:）を使って「時:分:秒」を直感的に足し引きできます。<br><br>💡 <b>入力例</b>:<br>・<code>5:00</code> ➔ 5分00秒<br>・<code>:30</code> ➔ 30秒<br>・<code>1:30:00</code> ➔ 1時間30分00秒<br>・<code>12:05:00 + 5:00</code> ➔ 12時10分00秒<br><br>※上部の <code>[+5分]</code> や <code>[+0.3秒]</code> ボタンと組み合わせると爆速で計算できます！',
+    'calc-keypad-converter': '【🔄 相互変換の入力方法】<br>秒数や分（例: <code>10000秒</code>、<code>1000分</code>、<code>3時間</code>、<code>05:30</code>）を入力するだけで、下の3つの形式（①時分秒 / ②分秒 / ③総秒数）へリアルタイムに一括変換されます！',
+    'calc-keypad-speedup': '【⚡️ 加速計算の入力方法】<br>短縮したい目標時間を（例: <code>1000分</code> や <code>24時間</code>）と入力すると、手持ちの加速アイテム（8h/1h/5m/1m）に応じた最適個数と、各単独使用時の必要個数（過剰警告つき）が自動算出されます！',
+    'calc-history': '【📜 計算履歴 ＆ メモ / 再利用 / 反映】<br>過去に行った時間計算の結果が自動で保存されます。<br><br>🔘 <b>各ボタン・機能の使い方</b>:<br>・<b>【メモを入力】</b>: 「砦差し込み用」「敵集結時間」など自由にメモを残せます。<br>・<b>【再利用】</b>: その計算式を電卓の入力欄にもう一度呼び出して再計算します。<br>・<b>【反映】</b>: 計算結果の秒数をメイン画面の差し込み計算（自分/相手/残り）へ直接セットします。',
+    'calc-converter': '【🔄 相互変換 ＆ 時間計算へ代入】<br>入力された数字（例: <code>10000秒</code> や <code>100000分</code>）を3つの形式に一括変換します。<br><br>🔘 <b>各ボタンの使い分け</b>:<br>・<b>【📋 コピー】</b>: その形式の文字列をクリップボードにコピーします。<br>・<b>【⏱️ 時間計算へ】</b>: 変換された時間（①時分秒 / ②分秒 / ③総秒数）を「時間計算」タブの入力欄へ直接セットします！そのまま <code>+5分</code> や時刻加減算を続けたい時に超便利です！<br>・<b>【📤 自分 / 相手】</b>: メイン画面の差し込み行軍時間へ直接セットします。',
+    'calc-speedup': '【加速計算】ホワサバの8時間・1時間・5分・1分加速の「最適組み合わせ（最小個数）」および「単体使用時の必要個数（過剰時間警告つき）」を即座に自動算出します。チェックボックスで使用する加速アイテムを自由に絞り込めます。'
   };
 
   const text = helpTexts[helpKey];
   if (!text) return;
 
   const btnElem = event.currentTarget;
-  const rect = btnElem.getBoundingClientRect();
+  const insideModalBody = btnElem.closest('.modal-body');
 
   const popover = document.createElement('div');
   popover.className = 'tooltip-popover';
@@ -3653,30 +3943,55 @@ function toggleHelpTooltip(event, helpKey) {
     <div class="text-xs leading-relaxed text-cyan-100">${text}</div>
   `;
 
-  document.body.appendChild(popover);
+  if (insideModalBody) {
+    // If button is inside modal-body, mount directly inside modal-body with position relative to modal-body!
+    insideModalBody.style.position = 'relative';
+    insideModalBody.appendChild(popover);
 
-  const popoverRect = popover.getBoundingClientRect();
-  const viewportHeight = window.innerHeight;
-  
-  // Smart Positioning: If button is near screen bottom (e.g. less than popover height + 80px), show popover ABOVE button
-  let top;
-  if (rect.bottom + popoverRect.height + 20 > viewportHeight) {
-    // Show ABOVE button
-    top = rect.top + window.scrollY - popoverRect.height - 8;
+    const btnRect = btnElem.getBoundingClientRect();
+    const modalRect = insideModalBody.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+
+    // Calculate relative offsets inside the scrolling modal
+    let relativeTop = (btnRect.bottom - modalRect.top) + insideModalBody.scrollTop + 6;
+    let relativeLeft = (btnRect.left - modalRect.left) + insideModalBody.scrollLeft - 10;
+
+    // Check bottom boundary inside modal viewport
+    if (btnRect.bottom + popoverRect.height + 20 > modalRect.bottom) {
+      relativeTop = (btnRect.top - modalRect.top) + insideModalBody.scrollTop - popoverRect.height - 6;
+    }
+
+    if (relativeLeft + popoverRect.width > insideModalBody.clientWidth - 12) {
+      relativeLeft = insideModalBody.clientWidth - popoverRect.width - 12;
+    }
+    if (relativeLeft < 10) relativeLeft = 10;
+
+    popover.style.top = `${relativeTop}px`;
+    popover.style.left = `${relativeLeft}px`;
   } else {
-    // Show BELOW button
-    top = rect.bottom + window.scrollY + 6;
+    // Standard Document Body Mounting
+    document.body.appendChild(popover);
+
+    const rect = btnElem.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    let top;
+    if (rect.bottom + popoverRect.height + 20 > viewportHeight) {
+      top = rect.top + window.scrollY - popoverRect.height - 8;
+    } else {
+      top = rect.bottom + window.scrollY + 6;
+    }
+
+    let left = rect.left + window.scrollX - 10;
+    if (left + popoverRect.width > window.innerWidth - 12) {
+      left = window.innerWidth - popoverRect.width - 12;
+    }
+    if (left < 12) left = 12;
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
   }
-
-  let left = rect.left + window.scrollX - 10;
-
-  if (left + popoverRect.width > window.innerWidth - 12) {
-    left = window.innerWidth - popoverRect.width - 12;
-  }
-  if (left < 12) left = 12;
-
-  popover.style.top = `${top}px`;
-  popover.style.left = `${left}px`;
 
   activeTooltipPopover = popover;
 }
