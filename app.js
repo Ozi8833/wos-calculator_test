@@ -3277,33 +3277,181 @@ if (document.readyState === 'loading') {
   initFloatingMemoWindow();
 }
 
-// --- Alliance Multi Mass Departure Mode (v1.02.27 Prototype) ---
-let allianceMembers = []; // Array of { id, name, marchSec, selected }
+// --- Alliance Multi Mass Departure Mode (v1.04.00 Group & Keypad & Search Enhanced) ---
+let allianceData = {
+  activeGroupId: 'default',
+  groups: [
+    {
+      id: 'default',
+      name: '🏰 メイン部隊',
+      members: [] // Array of { id, name, marchSec, selected }
+    }
+  ]
+};
 
-function saveAllianceMembers() {
-  localStorage.setItem('wos_alliance_members', JSON.stringify(allianceMembers));
+// Legacy fallback array accessor for backwards compatibility
+let allianceMembers = [];
+
+function saveAllianceData() {
+  localStorage.setItem('wos_alliance_groups_data_v2', JSON.stringify(allianceData));
+  const curGroup = getActiveAllianceGroup();
+  allianceMembers = curGroup ? curGroup.members : [];
   updateAllianceMemberBadges();
 }
 
 function loadAllianceMembers() {
-  const saved = localStorage.getItem('wos_alliance_members');
-  if (saved) {
+  const savedV2 = localStorage.getItem('wos_alliance_groups_data_v2');
+  if (savedV2) {
     try {
-      allianceMembers = JSON.parse(saved);
+      const parsed = JSON.parse(savedV2);
+      if (parsed && Array.isArray(parsed.groups) && parsed.groups.length > 0) {
+        allianceData = parsed;
+      }
     } catch (e) {}
+  } else {
+    // Migration from v1 legacy
+    const savedLegacy = localStorage.getItem('wos_alliance_members');
+    let legacyMembers = [];
+    if (savedLegacy) {
+      try {
+        legacyMembers = JSON.parse(savedLegacy);
+      } catch (e) {}
+    }
+    if (!Array.isArray(legacyMembers) || legacyMembers.length === 0) {
+      legacyMembers = [
+        { id: '1', name: '山田', marchSec: 90, selected: true },
+        { id: '2', name: '佐藤', marchSec: 105, selected: true },
+        { id: '3', name: '田中', marchSec: 130, selected: true }
+      ];
+    }
+    allianceData = {
+      activeGroupId: 'default',
+      groups: [
+        {
+          id: 'default',
+          name: '🏰 メイン部隊',
+          members: legacyMembers
+        }
+      ]
+    };
+    saveAllianceData();
   }
-  if (!Array.isArray(allianceMembers) || allianceMembers.length === 0) {
-    // Initial sample data if empty
-    allianceMembers = [
-      { id: '1', name: '山田', marchSec: 90, selected: true },
-      { id: '2', name: '佐藤', marchSec: 105, selected: true },
-      { id: '3', name: '田中', marchSec: 130, selected: true }
-    ];
-  }
+
+  const curGroup = getActiveAllianceGroup();
+  allianceMembers = curGroup ? curGroup.members : [];
   updateAllianceMemberBadges();
 }
 
+function getActiveAllianceGroup() {
+  let group = allianceData.groups.find(g => g.id === allianceData.activeGroupId);
+  if (!group && allianceData.groups.length > 0) {
+    group = allianceData.groups[0];
+    allianceData.activeGroupId = group.id;
+  }
+  return group;
+}
+
+function setActiveAllianceGroup(groupId) {
+  allianceData.activeGroupId = groupId;
+  saveAllianceData();
+  renderAllianceGroupTabs();
+  renderAllianceMemberList();
+  renderAllianceSelectionList();
+  updateAllianceTimeline();
+}
+
+function promptCreateAllianceGroup() {
+  const name = prompt('新規グループ名を入力してください (例: 砦A班、王城突入班 など):');
+  if (!name || !name.trim()) return;
+
+  const newGroup = {
+    id: 'grp_' + Date.now().toString(36),
+    name: name.trim(),
+    members: []
+  };
+
+  // Copy member names from current group with default or existing times for convenience
+  const curGroup = getActiveAllianceGroup();
+  if (curGroup && curGroup.members.length > 0) {
+    const copyTimes = confirm('現在のグループのメンバー一覧（' + curGroup.members.length + '名）をコピーして作成しますか？\n（[キャンセル]を押すと空のグループを作成します）');
+    if (copyTimes) {
+      newGroup.members = curGroup.members.map(m => ({
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        name: m.name,
+        marchSec: m.marchSec,
+        selected: true
+      }));
+    }
+  }
+
+  allianceData.groups.push(newGroup);
+  allianceData.activeGroupId = newGroup.id;
+  saveAllianceData();
+  renderAllianceGroupTabs();
+  renderAllianceMemberList();
+  renderAllianceSelectionList();
+}
+
+function promptRenameAllianceGroup() {
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  const newName = prompt('グループ名を変更:', curGroup.name);
+  if (newName && newName.trim()) {
+    curGroup.name = newName.trim();
+    saveAllianceData();
+    renderAllianceGroupTabs();
+  }
+}
+
+function deleteCurrentAllianceGroup() {
+  if (allianceData.groups.length <= 1) {
+    alert('⚠️ グループが1つしかないため削除できません。');
+    return;
+  }
+  const curGroup = getActiveAllianceGroup();
+  if (confirm(`グループ「${curGroup.name}」を削除してもよろしいですか？`)) {
+    allianceData.groups = allianceData.groups.filter(g => g.id !== curGroup.id);
+    allianceData.activeGroupId = allianceData.groups[0].id;
+    saveAllianceData();
+    renderAllianceGroupTabs();
+    renderAllianceMemberList();
+    renderAllianceSelectionList();
+  }
+}
+
+function renderAllianceGroupTabs() {
+  const container = document.getElementById('alliance-group-tabs-container');
+  const selContainer = document.getElementById('alliance-selection-group-tabs');
+  
+  if (container) {
+    container.innerHTML = '';
+    allianceData.groups.forEach(g => {
+      const isActive = g.id === allianceData.activeGroupId;
+      const btn = document.createElement('button');
+      btn.className = `btn-game btn-xs ${isActive ? 'btn-primary active' : 'btn-secondary'} px-2.5 py-1 font-bold whitespace-nowrap text-xs flex items-center gap-1`;
+      btn.innerHTML = `${g.name} <span class="bg-black/40 px-1 rounded text-[10px] text-yellow-300 font-mono">${g.members.length}</span>`;
+      btn.onclick = () => setActiveAllianceGroup(g.id);
+      container.appendChild(btn);
+    });
+  }
+
+  if (selContainer) {
+    selContainer.innerHTML = '';
+    allianceData.groups.forEach(g => {
+      const isActive = g.id === allianceData.activeGroupId;
+      const btn = document.createElement('button');
+      btn.className = `btn-game btn-xs ${isActive ? 'btn-primary active' : 'btn-secondary'} px-2 py-0.5 font-bold whitespace-nowrap text-[11px] flex items-center gap-1`;
+      btn.innerHTML = `${g.name} <span class="bg-black/40 px-1 rounded text-[10px] text-yellow-300 font-mono">${g.members.length}</span>`;
+      btn.onclick = () => setActiveAllianceGroup(g.id);
+      selContainer.appendChild(btn);
+    });
+  }
+}
+
 function updateAllianceMemberBadges() {
+  const curGroup = getActiveAllianceGroup();
+  allianceMembers = curGroup ? curGroup.members : [];
+
   const countBadge = document.getElementById('alliance-member-count-badge');
   const selBadge = document.getElementById('alliance-selected-count-badge');
   const totalBadge = document.getElementById('alliance-total-count-badge');
@@ -3324,6 +3472,7 @@ function updateAllianceMemberBadges() {
 function openAllianceMemberModal() {
   const modal = document.getElementById('alliance-member-modal');
   if (modal) {
+    renderAllianceGroupTabs();
     renderAllianceMemberList();
     modal.classList.add('open');
   }
@@ -3337,6 +3486,7 @@ function closeAllianceMemberModal() {
 function openAllianceMemberSelectionModal() {
   const modal = document.getElementById('alliance-selection-modal');
   if (modal) {
+    renderAllianceGroupTabs();
     renderAllianceSelectionList();
     modal.classList.add('open');
   }
@@ -3347,7 +3497,80 @@ function closeAllianceMemberSelectionModal() {
   if (modal) modal.classList.remove('open');
 }
 
-// Quick Load Sample 65 Members Helper (v1.02.44 Mobile Friendly)
+function toggleAllianceBatchImportArea() {
+  const area = document.getElementById('alliance-batch-import-area');
+  if (area) {
+    area.classList.toggle('hidden');
+  }
+}
+
+// Quick Add Member (Name + Seconds)
+function quickAddAllianceMember() {
+  const nameInput = document.getElementById('quick-add-member-name');
+  const timeInput = document.getElementById('quick-add-member-time');
+  if (!nameInput || !timeInput) return;
+
+  const name = nameInput.value.trim();
+  const timeRaw = timeInput.value.trim();
+
+  if (!name) {
+    alert('メンバー名を入力してください。');
+    nameInput.focus();
+    return;
+  }
+  if (!timeRaw) {
+    alert('行軍時間を入力してください (例: 30 または 01:30)。');
+    timeInput.focus();
+    return;
+  }
+
+  const marchSec = parseSecondsFromMMSS(timeRaw);
+  if (isNaN(marchSec) || marchSec <= 0) {
+    alert('有効な行軍時間を入力してください (例: 30 または 01:30)。');
+    timeInput.focus();
+    return;
+  }
+
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+
+  const existing = curGroup.members.find(m => m.name === name);
+  if (existing) {
+    existing.marchSec = marchSec;
+  } else {
+    curGroup.members.push({
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+      name: name,
+      marchSec: marchSec,
+      selected: true
+    });
+  }
+
+  saveAllianceData();
+  renderAllianceMemberList();
+  nameInput.value = '';
+  timeInput.value = '';
+  nameInput.focus();
+}
+
+// Sorting Helpers
+function sortAllianceMembersByName() {
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  curGroup.members.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  saveAllianceData();
+  renderAllianceMemberList();
+}
+
+function sortAllianceMembersByTime() {
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  curGroup.members.sort((a, b) => a.marchSec - b.marchSec);
+  saveAllianceData();
+  renderAllianceMemberList();
+}
+
+// Quick Load Sample 65 Members Helper
 function loadSample65MembersToTextarea() {
   const textarea = document.getElementById('alliance-import-textarea');
   if (!textarea) return;
@@ -3419,159 +3642,14 @@ sympathy,00:25
 和菓子屋,00:30`;
 
   textarea.value = sampleData;
-  alert('サンプル65名のデータをテキストエリアにセットしました！「📥 一括登録を実行」を押すと登録されます。');
+  alert('サンプル65名のデータをセットしました！「📥 一括登録」を押すと現在のグループに登録されます。');
 }
 
-// Template Download & Data Export Helpers (v1.02.30)
+// Template Download & Data Export Helpers
 function downloadAllianceTemplate(type) {
-  let content = '';
-  let filename = '';
-  let mimeType = '';
-
-  if (type === 'csv') {
-    content = `\uFEFF名前,行軍時間
-103ch,00:31
-Candy,00:20
-Ciel,00:28
-Cion,00:30
-HANA,00:30
-nagisa2,00:20
-ozi,00:29
-Ruru,00:25
-Shikky,00:31
-sympathy,00:25
-アーモンドミルク,00:30
-ｲﾝｶﾗﾏｯ,00:23
-ウィット,00:25
-えま,00:20
-おじー,00:23
-おしっきーん,00:28
-きなぽん,00:20
-ぎょぎょ,00:25
-こんもちこ,00:29
-さくまる,00:28
-さぶちゃんマソ,00:20
-さぶちゃんマン,00:31
-ちむほび,00:20
-なりもん,00:29
-にゃおち,00:28
-にゃんこまろ,00:28
-バブ大福,00:26
-はるさん,00:31
-はるしゃん,00:20
-ひなーこ,00:26
-ひなこもち,00:28
-ひまり,00:31
-ぷかぷか,00:20
-ぷらころーる,00:30
-ぷらりね,00:26
-ぺこりん,00:29
-べび大福,00:29
-ぽてまる,00:26
-まめさん,00:25
-みにはるさん,00:23
-めごらー,00:29
-めごらん,00:25
-めろにゃおち,00:28
-もち大福,00:23
-もふ大福,00:23
-やん・凡・じーん,00:20
-やんちゃんマン,00:23
-ゆゆ,00:20
-らすかりーの・ぽんてぃーぬ,00:30
-らすかる,00:23
-りょう,00:25
-リリド,00:20
-るいち,00:28
-ルッカ,00:26
-るるたん,00:20
-るるるん,00:31
-鬼嫁ちゃん,00:20
-黒大福もちみ,00:20
-新橋,00:29
-新八,00:31
-昔むかしの鬼嫁ちゃん,00:25
-白大福もちこ,00:30
-六ZERO,00:26
-和,00:26
-和菓子屋,00:30
-`;
-    filename = 'wos_alliance_template.csv';
-    mimeType = 'text/csv;charset=utf-8;';
-  } else {
-    content = `# 【ホワサバ同盟員リスト用テンプレート】
-# 形式: 名前, 行軍時間 (MM:SS)
-# （ハッシュ記号 # から始まる行はコメントとして無視されます）
-
-103ch,00:31
-Candy,00:20
-Ciel,00:28
-Cion,00:30
-HANA,00:30
-nagisa2,00:20
-ozi,00:29
-Ruru,00:25
-Shikky,00:31
-sympathy,00:25
-アーモンドミルク,00:30
-ｲﾝｶﾗﾏｯ,00:23
-ウィット,00:25
-えま,00:20
-おじー,00:23
-おしっきーん,00:28
-きなぽん,00:20
-ぎょぎょ,00:25
-こんもちこ,00:29
-さくまる,00:28
-さぶちゃんマソ,00:20
-さぶちゃんマン,00:31
-ちむほび,00:20
-なりもん,00:29
-にゃおち,00:28
-にゃんこまろ,00:28
-バブ大福,00:26
-はるさん,00:31
-はるしゃん,00:20
-ひなーこ,00:26
-ひなこもち,00:28
-ひまり,00:31
-ぷかぷか,00:20
-ぷらころーる,00:30
-ぷらりね,00:26
-ぺこりん,00:29
-べび大福,00:29
-ぽてまる,00:26
-まめさん,00:25
-みにはるさん,00:23
-めごらー,00:29
-めごらん,00:25
-めろにゃおち,00:28
-もち大福,00:23
-もふ大福,00:23
-やん・凡・じーん,00:20
-やんちゃんマン,00:23
-ゆゆ,00:20
-らすかりーの・ぽんてぃーぬ,00:30
-らすかる,00:23
-りょう,00:25
-リリド,00:20
-るいち,00:28
-ルッカ,00:26
-るるたん,00:20
-るるるん,00:31
-鬼嫁ちゃん,00:20
-黒大福もちみ,00:20
-新橋,00:29
-新八,00:31
-昔むかしの鬼嫁ちゃん,00:25
-白大福もちこ,00:30
-六ZERO,00:26
-和,00:26
-和菓子屋,00:30
-`;
-    filename = 'wos_alliance_template.txt';
-    mimeType = 'text/plain;charset=utf-8;';
-  }
+  let content = `\uFEFF名前,行軍時間\n103ch,00:31\nCandy,00:20\nCiel,00:28\nShikky,00:31\nアーモンドミルク,00:30\n`;
+  let filename = 'wos_alliance_template.csv';
+  let mimeType = 'text/csv;charset=utf-8;';
 
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -3585,12 +3663,13 @@ sympathy,00:25
 }
 
 function exportCurrentAllianceMembers() {
-  if (allianceMembers.length === 0) {
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup || curGroup.members.length === 0) {
     alert('エクスポートする登録メンバーがいません。');
     return;
   }
 
-  const sorted = [...allianceMembers].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  const sorted = [...curGroup.members].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   let csvContent = '\uFEFF名前,行軍時間\n';
 
   sorted.forEach(m => {
@@ -3601,7 +3680,7 @@ function exportCurrentAllianceMembers() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `wos_alliance_members_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `wos_${curGroup.name}_${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -3618,13 +3697,13 @@ function importAllianceMembersFromText() {
 
   const lines = textarea.value.split('\n');
   let addedCount = 0;
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
 
   lines.forEach(line => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) return;
 
-    // Split line into Name and Time string using comma, tab, or space delimiter
-    // Example: "山田, 01:30", "佐藤\t1:45", "田中 2:10"
     let name = '';
     let timeStr = '';
 
@@ -3637,7 +3716,6 @@ function importAllianceMembersFromText() {
       name = parts[0].trim();
       timeStr = parts.slice(1).join('\t').trim();
     } else {
-      // Split by first whitespace block
       const spaceIdx = trimmed.search(/\s/);
       if (spaceIdx !== -1) {
         name = trimmed.substring(0, spaceIdx).trim();
@@ -3647,14 +3725,12 @@ function importAllianceMembersFromText() {
 
     if (name && timeStr) {
       const marchSec = parseSecondsFromMMSS(timeStr);
-
       if (!isNaN(marchSec) && marchSec > 0) {
-        // Prevent duplicate names by updating existing or adding new
-        const existing = allianceMembers.find(m => m.name === name);
+        const existing = curGroup.members.find(m => m.name === name);
         if (existing) {
           existing.marchSec = marchSec;
         } else {
-          allianceMembers.push({
+          curGroup.members.push({
             id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
             name: name,
             marchSec: marchSec,
@@ -3666,9 +3742,9 @@ function importAllianceMembersFromText() {
     }
   });
 
-  saveAllianceMembers();
+  saveAllianceData();
   renderAllianceMemberList();
-  alert(`${addedCount} 名のメンバーを登録/更新しました！`);
+  alert(`${addedCount} 名のメンバーを現在のグループに登録/更新しました！`);
 }
 
 function clearAllianceImportTextarea() {
@@ -3677,47 +3753,248 @@ function clearAllianceImportTextarea() {
 }
 
 function clearAllAllianceMembers() {
-  if (confirm('登録済みのすべての同盟メンバーを削除しますか？')) {
-    allianceMembers = [];
-    saveAllianceMembers();
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  if (confirm(`グループ「${curGroup.name}」の登録メンバーを全消去しますか？`)) {
+    curGroup.members = [];
+    saveAllianceData();
     renderAllianceMemberList();
   }
 }
 
 function deleteAllianceMember(id) {
-  allianceMembers = allianceMembers.filter(m => m.id !== id);
-  saveAllianceMembers();
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  curGroup.members = curGroup.members.filter(m => m.id !== id);
+  saveAllianceData();
   renderAllianceMemberList();
 }
 
 function renderAllianceMemberList() {
   const container = document.getElementById('alliance-member-list-container');
+  const searchInput = document.getElementById('alliance-member-search');
   if (!container) return;
   container.innerHTML = '';
 
-  if (allianceMembers.length === 0) {
-    container.innerHTML = '<div class="text-gray-500 text-xs text-center py-3">登録メンバーがいません</div>';
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup || curGroup.members.length === 0) {
+    container.innerHTML = '<div class="text-gray-500 text-xs text-center py-4">このグループにはメンバーが登録されていません</div>';
+    updateAllianceMemberBadges();
     return;
   }
 
-  // Sort by Japanese Gojūon (あいうえお順)
-  const sorted = [...allianceMembers].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  const rawQuery = (searchInput?.value || '').trim().toLowerCase();
+  const sorted = [...curGroup.members];
+  let filtered = sorted;
 
-  sorted.forEach(m => {
+  if (rawQuery) {
+    // Split by comma (全角・半角), space (全角・半角), or tab
+    const tokens = rawQuery.split(/[,、\s\t]+/).filter(t => t.length > 0);
+    if (tokens.length > 0) {
+      filtered = sorted.filter(m => {
+        const mName = m.name.toLowerCase();
+        const mTimeStr = formatCountdownMMSS(m.marchSec).toLowerCase();
+        const mSecStr = m.marchSec.toString();
+        // Match if ANY of the search tokens matches this member (OR condition)
+        return tokens.some(tok => mName.includes(tok) || mTimeStr.includes(tok) || mSecStr.includes(tok));
+      });
+    }
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="text-gray-500 text-xs text-center py-3">該当するメンバーがいません</div>';
+    return;
+  }
+
+  filtered.forEach(m => {
     const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-black/60 p-2 rounded border border-cyan-900/60 text-xs';
+    div.className = 'flex justify-between items-center bg-black/60 p-2 rounded border border-cyan-900/60 text-xs hover:border-cyan-500/50 transition-all';
     div.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-cyan-200">${m.name}</span>
-        <span class="text-gray-400 font-mono text-[11px]">(行軍 ${formatCountdownMMSS(m.marchSec)})</span>
+      <div class="flex items-center gap-2 flex-1 min-w-0 mr-2">
+        <span class="font-bold text-cyan-200 truncate">${m.name}</span>
       </div>
-      <button class="text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5" onclick="deleteAllianceMember('${m.id}')">&times;</button>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button class="btn-game btn-xs bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 font-mono font-bold px-2 py-1 text-xs hover:scale-105 transition-transform" onclick="openAllianceKeypadModal('${m.id}')" title="タップして時間を変更">
+          ⏱ ${formatCountdownMMSS(m.marchSec)} <i class="fa-solid fa-pen-to-square text-[10px] ml-0.5"></i>
+        </button>
+        <button class="text-red-400 hover:text-red-300 font-bold px-1.5 py-0.5 text-base" onclick="deleteAllianceMember('${m.id}')">&times;</button>
+      </div>
     `;
     container.appendChild(div);
   });
 
   updateAllianceMemberBadges();
   updateAllianceTimeline();
+}
+
+// Inline Dedicated Keypad for Quick Member March Time Edit & Single Mode Inputs
+let activeKeypadMemberId = null;
+let activeKeypadInputTarget = null; // { elementId, labelName }
+let keypadInputBuffer = ''; // Stores typed raw digits like "25" (25s) or "130" (1m30s)
+
+function openAllianceKeypadModal(memberId) {
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  const member = curGroup.members.find(m => m.id === memberId);
+  if (!member) return;
+
+  activeKeypadMemberId = memberId;
+  activeKeypadInputTarget = null;
+  keypadInputBuffer = ''; // Start from 00:00 as requested
+
+  const nameElem = document.getElementById('keypad-member-name');
+  if (nameElem) nameElem.textContent = member.name;
+
+  const origTimeElem = document.getElementById('keypad-original-time');
+  if (origTimeElem) origTimeElem.textContent = `(現在 ${formatCountdownMMSS(member.marchSec)})`;
+
+  updateKeypadDisplay();
+
+  const modal = document.getElementById('alliance-keypad-modal');
+  if (modal) modal.classList.add('open');
+}
+
+// Single mode input keypad handler
+function openSingleInputKeypad(elementId, labelName) {
+  const inputElem = document.getElementById(elementId);
+  if (!inputElem) return;
+
+  activeKeypadMemberId = null;
+  activeKeypadInputTarget = { elementId, labelName };
+  keypadInputBuffer = ''; // Start from 00:00
+
+  const nameElem = document.getElementById('keypad-member-name');
+  if (nameElem) nameElem.textContent = labelName;
+
+  const origTimeElem = document.getElementById('keypad-original-time');
+  if (origTimeElem) origTimeElem.textContent = `(現在 ${inputElem.value || '00:00'})`;
+
+  updateKeypadDisplay();
+
+  const modal = document.getElementById('alliance-keypad-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeAllianceKeypadModal() {
+  const modal = document.getElementById('alliance-keypad-modal');
+  if (modal) modal.classList.remove('open');
+  activeKeypadMemberId = null;
+  activeKeypadInputTarget = null;
+}
+
+// Convert digit buffer (e.g. "5" -> 5s, "25" -> 25s, "130" -> 1m30s (90s), "0130" -> 1m30s (90s))
+function parseKeypadBufferToSeconds(buffer) {
+  if (!buffer || buffer === '') return 0;
+  const clean = buffer.replace(/^0+/, '') || '0';
+  
+  if (clean.length <= 2) {
+    // Up to 2 digits: direct seconds (e.g. "5" -> 5s, "25" -> 25s, "90" -> 90s)
+    return parseInt(clean, 10) || 0;
+  } else if (clean.length === 3) {
+    // 3 digits: M:SS (e.g. "130" -> 1m 30s = 90s)
+    const m = parseInt(clean[0], 10) || 0;
+    const s = parseInt(clean.slice(1), 10) || 0;
+    return m * 60 + s;
+  } else {
+    // 4 digits: MM:SS (e.g. "0215" -> 2m 15s = 135s)
+    const m = parseInt(clean.slice(0, 2), 10) || 0;
+    const s = parseInt(clean.slice(2), 10) || 0;
+    return m * 60 + s;
+  }
+}
+
+function updateKeypadDisplay() {
+  const disp = document.getElementById('keypad-display-val');
+  if (!disp) return;
+
+  if (!keypadInputBuffer) {
+    disp.textContent = '00:00';
+    return;
+  }
+
+  const totalSec = parseKeypadBufferToSeconds(keypadInputBuffer);
+  disp.textContent = formatCountdownMMSS(totalSec);
+}
+
+function pressKeypadNumber(numStr) {
+  if (keypadInputBuffer.length >= 4) return;
+  // If buffer is empty and user presses 0, ignore leading zeroes
+  if (!keypadInputBuffer && numStr === '0') return;
+  keypadInputBuffer += numStr;
+  updateKeypadDisplay();
+}
+
+function clearKeypadInput() {
+  keypadInputBuffer = '';
+  updateKeypadDisplay();
+}
+
+function backspaceKeypadInput() {
+  keypadInputBuffer = keypadInputBuffer.slice(0, -1);
+  updateKeypadDisplay();
+}
+
+function adjustKeypadSeconds(delta) {
+  let sec = parseKeypadBufferToSeconds(keypadInputBuffer);
+  // If buffer was empty, start from currently registered seconds or 0
+  if (!keypadInputBuffer) {
+    if (activeKeypadMemberId) {
+      const curGroup = getActiveAllianceGroup();
+      const member = curGroup?.members.find(m => m.id === activeKeypadMemberId);
+      if (member) sec = member.marchSec;
+    } else if (activeKeypadInputTarget) {
+      const inputElem = document.getElementById(activeKeypadInputTarget.elementId);
+      if (inputElem) sec = parseSecondsFromMMSS(inputElem.value) || 0;
+    }
+  }
+
+  sec = Math.max(1, sec + delta);
+  // Format back into seconds or MMSS digits
+  if (sec < 60) {
+    keypadInputBuffer = sec.toString();
+  } else {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    keypadInputBuffer = `${m}${s.toString().padStart(2, '0')}`;
+  }
+  updateKeypadDisplay();
+}
+
+function confirmKeypadTime() {
+  let totalSec = parseKeypadBufferToSeconds(keypadInputBuffer);
+  if (totalSec <= 0) {
+    alert('有効な時間を入力してください (1秒以上)。');
+    return;
+  }
+
+  if (activeKeypadInputTarget) {
+    // Single Mode Input Target
+    const inputElem = document.getElementById(activeKeypadInputTarget.elementId);
+    if (inputElem) {
+      const formatted = formatCountdownMMSS(totalSec);
+      inputElem.value = formatted;
+      if (activeKeypadInputTarget.elementId === 'simple-my-march') {
+        saveMyMarchTime(formatted);
+      }
+      calculateInsertion();
+    }
+    closeAllianceKeypadModal();
+    return;
+  }
+
+  if (activeKeypadMemberId) {
+    // Alliance Member Target
+    const curGroup = getActiveAllianceGroup();
+    if (!curGroup) return;
+    const member = curGroup.members.find(m => m.id === activeKeypadMemberId);
+    if (!member) return;
+
+    member.marchSec = totalSec;
+    saveAllianceData();
+    renderAllianceMemberList();
+    closeAllianceKeypadModal();
+    return;
+  }
 }
 
 // Selection Checklist Modal Logic
@@ -3727,11 +4004,27 @@ function renderAllianceSelectionList() {
   if (!container) return;
   container.innerHTML = '';
 
-  const filterText = (searchInput?.value || '').trim().toLowerCase();
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup || curGroup.members.length === 0) {
+    container.innerHTML = '<div class="text-gray-500 text-xs text-center py-4">このグループにはメンバーがいません</div>';
+    return;
+  }
 
-  // Sort by Japanese Gojūon
-  const sorted = [...allianceMembers].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-  const filtered = sorted.filter(m => m.name.toLowerCase().includes(filterText));
+  const rawQuery = (searchInput?.value || '').trim().toLowerCase();
+  const sorted = [...curGroup.members];
+  let filtered = sorted;
+
+  if (rawQuery) {
+    const tokens = rawQuery.split(/[,、\s\t]+/).filter(t => t.length > 0);
+    if (tokens.length > 0) {
+      filtered = sorted.filter(m => {
+        const mName = m.name.toLowerCase();
+        const mTimeStr = formatCountdownMMSS(m.marchSec).toLowerCase();
+        const mSecStr = m.marchSec.toString();
+        return tokens.some(tok => mName.includes(tok) || mTimeStr.includes(tok) || mSecStr.includes(tok));
+      });
+    }
+  }
 
   if (filtered.length === 0) {
     container.innerHTML = '<div class="text-gray-500 text-xs text-center py-3">該当するメンバーがいません</div>';
@@ -3743,39 +4036,43 @@ function renderAllianceSelectionList() {
     const div = document.createElement('label');
     div.className = 'flex items-center justify-between p-2 rounded hover:bg-cyan-950/50 cursor-pointer border-b border-gray-800/60 text-xs';
     div.innerHTML = `
-      <div class="flex items-center gap-2">
-        <input type="checkbox" class="w-4 h-4 accent-cyan-400" ${isChecked ? 'checked' : ''} onchange="toggleAllianceMemberSelection('${m.id}', this.checked)">
-        <span class="font-bold text-gray-200">${m.name}</span>
+      <div class="flex items-center gap-2 flex-1 min-w-0 mr-2">
+        <input type="checkbox" class="w-4 h-4 accent-cyan-400 shrink-0" ${isChecked ? 'checked' : ''} onchange="toggleAllianceMemberSelection('${m.id}', this.checked)">
+        <span class="font-bold text-gray-200 truncate">${m.name}</span>
       </div>
-      <span class="text-gray-400 font-mono text-[11px]">${formatCountdownMMSS(m.marchSec)}</span>
+      <span class="text-yellow-300 font-mono text-[11px] font-bold shrink-0">${formatCountdownMMSS(m.marchSec)}</span>
     `;
     container.appendChild(div);
   });
 
   const selNum = document.getElementById('alliance-selection-selected-num');
   const totalNum = document.getElementById('alliance-selection-total-num');
-  if (selNum) selNum.textContent = allianceMembers.filter(m => m.selected !== false).length;
-  if (totalNum) totalNum.textContent = allianceMembers.length;
+  if (selNum) selNum.textContent = curGroup.members.filter(m => m.selected !== false).length;
+  if (totalNum) totalNum.textContent = curGroup.members.length;
 }
 
 function toggleAllianceMemberSelection(id, checked) {
-  const member = allianceMembers.find(m => m.id === id);
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  const member = curGroup.members.find(m => m.id === id);
   if (member) {
     member.selected = checked;
-    saveAllianceMembers();
+    saveAllianceData();
     renderAllianceSelectionList();
     updateAllianceTimeline();
   }
 }
 
 function setAllAllianceSelection(checked) {
-  allianceMembers.forEach(m => m.selected = checked);
-  saveAllianceMembers();
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+  curGroup.members.forEach(m => m.selected = checked);
+  saveAllianceData();
   renderAllianceSelectionList();
   updateAllianceTimeline();
 }
 
-// Multi Mass Calculation & Copy Logic (v1.02.41 Sort Mode: Name / Time & v1.03.63 Unified Clean Format)
+// Multi Mass Calculation & Copy Logic (v1.04.00 9-Person Chunking & Clean Template)
 let allianceCopySortMode = localStorage.getItem('wos_alliance_copy_sort_mode') || 'name'; // 'name' or 'time'
 
 function setAllianceCopySortMode(mode) {
@@ -3796,17 +4093,18 @@ function setAllianceCopySortMode(mode) {
   updateAllianceCopyButtons();
 }
 
-// Dynamically generate single copy button or auto-split buttons if member count exceeds limits
+// Dynamically generate single copy button or auto-split buttons if member count exceeds 9
 function updateAllianceCopyButtons() {
   const container = document.getElementById('alliance-copy-buttons-container');
   if (!container) return;
 
-  const selectedCount = allianceMembers.filter(m => m.selected !== false).length;
+  const curGroup = getActiveAllianceGroup();
+  const selectedCount = curGroup ? curGroup.members.filter(m => m.selected !== false).length : 0;
   const sortModeTitle = allianceCopySortMode === 'time' ? '出発時間順' : 'あいうえお順';
 
   // Whiteout Survival chat allows max ~10 lines per message before stripping newlines.
-  // Header is 2 lines + 8 members = 10 lines (100% safe across all devices!)
-  const limitPerChunk = 8;
+  // Header is 1 line + 9 members = 10 lines (100% safe across all devices!)
+  const limitPerChunk = 9;
 
   if (selectedCount <= limitPerChunk) {
     // Single Button
@@ -3820,7 +4118,7 @@ function updateAllianceCopyButtons() {
     const totalParts = Math.ceil(selectedCount / limitPerChunk);
     let html = `
       <div class="text-[10px] text-yellow-300 font-bold bg-yellow-950/60 p-1.5 rounded border border-yellow-500/40 text-center">
-        ⚠️ ホワサバ改行制限対策: ${selectedCount}名を 8名ずつ(${totalParts}回) に自動分割（タップ順にチャット送信）
+        ⚠️ ホワサバ改行制限対策: ${selectedCount}名を 9名ずつ(${totalParts}回) に自動分割（タップ順にチャット送信）
       </div>
       <div class="grid grid-cols-${Math.min(totalParts, 2)} gap-1.5">
     `;
@@ -3845,8 +4143,10 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
     return;
   }
 
-  // Filter selected members
-  const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+  const curGroup = getActiveAllianceGroup();
+  if (!curGroup) return;
+
+  const selectedMembers = curGroup.members.filter(m => m.selected !== false);
   if (selectedMembers.length === 0) {
     alert('⚠️ 【メンバー未選択】同盟タイムラインの送信対象メンバーが1人も選択されていません。\n「👥 送信選択」から対象メンバーをチェックしてください。');
     return;
@@ -3871,8 +4171,7 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
   }
 
   const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
-  const statusModeName = simpleLaunchState.statusMode === 'rally' ? '相手集結中' : '相手行軍中';
-  const sortModeTitle = allianceCopySortMode === 'time' ? '出発順' : 'あいうえお順';
+  const groupTitle = curGroup.name.replace(/^[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/, ''); // Strip leading emojis for concise text
 
   // Apply Chunking if requested
   let targetItems = memberWithDates;
@@ -3884,13 +4183,13 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
     partNote = ` (${part}/${totalParts})`;
   }
 
-  let text = `⚔️【同盟一斉発車指示】(${tzStr}・${sortModeTitle}${partNote})
-🎯 ${statusModeName} (着弾 ${formatTimeHHMMSS(enemyLandDate)})\n`;
+  // --- v1.04.00 Super Clean 1-Line Header + Name ➔ Launch Time Format ---
+  let text = `⚔️【${groupTitle} 一斉発車】(${tzStr})${partNote}\n`;
 
   targetItems.forEach(item => {
     const m = item.member;
     const launchTimeStr = formatTimeHHMMSS(item.targetLaunchDate);
-    text += `・${m.name} (${formatCountdownMMSS(m.marchSec)}) ➔ ${launchTimeStr}\n`;
+    text += `・${m.name} ➔ ${launchTimeStr}\n`;
   });
 
   navigator.clipboard.writeText(text).then(() => {
@@ -3935,6 +4234,12 @@ function toggleHelpTooltip(event, helpKey) {
     'enemy-rem': 'ホワサバ内の集結画面に表示されている集結中時間を入力します。※画面上部の【調整表示ボタン】を押すと調整同期ボタンが表示されます。',
     'status-mode': 'ホワサバ内の集結画面に表示されている相手(敵)が【集結中】もしくは【行軍中】かを選択します。',
     'alliance-timeline': '【送信選択】で選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。行をタップすると黄色枠で注目トラッキングできます。',
+    'alliance-groups': '【🏰 ターゲット別グループ管理】<br>「砦1班」「王城班」「SVS精鋭」など複数の部隊グループを作成・切替できます。<br>※<b>グループごとに行軍時間を個別に保持</b>するため、ターゲットが変わってもワンタップでその場所の秒数に瞬時切り替え可能です！',
+    'alliance-quick-add': '【➕ スマホ爆速追加】<br>「名前」と「行軍時間」を入力して「追加」を押すだけで連続登録できます。<br>※秒数のみ（例: <code>30</code> ➔ 00:30）の入力でも自動認識されます！',
+    'alliance-search': '【🔍 複数キーワード一括検索】<br>名前や秒数を1文字打つだけでリアルタイム絞り込みができます。<br>💡 <b>複数人検索の裏技</b>:<br>「<code>ひまり、はるさん、白大福もちこ</code>」のように読点「、」やカンマ「,」、スペース区切りで入力すると、該当する複数メンバーをまとめて一覧に抽出できます！',
+    'alliance-keypad': '【⏱️ 専用ミニテンキーパッド】<br>メンバーの行軍時間ボタン（例: <code>⏱ 00:23 📝</code>）をタップすると専用テンキーが出現し、スマホのキーボードを開かずに <code>[3] [0] [確定]</code> や <code>[+1s]</code> でサクサク秒数変更できます！',
+    'alliance-batch-import': '【📋 テキスト / CSV 一括貼り付け】<br><code>名前, 行軍時間(分:秒)</code> の形式で、カンマ・スペース・タブ区切りの改行テキストをまとめて現在のグループへ一括登録できます。「サンプル65名」ボタンでテストデータも一発セット可能です。',
+    'alliance-selection-group': '【グループ一括選択】<br>上部のグループタブ（砦1班、王城班など）をタップすると、そのグループに所属するメンバーの選択状態へ一瞬で切り替わります。',
     'copy-order': '同盟チャットに指示を貼り付ける際、名前順で並べるか、発車時刻が早い順で並べるかを選択できます。',
     'chat-format': '【ホワサバのチャット改行・文字数制限対策】<br>ホワサバのチャットは1メッセージあたり最大10行前後の制限があります。<br>・<b>📄 標準形式</b>: 詳細な発車指示文<br>・<b>⚡️ 超短縮形式</b>: 1行を極限まで短縮したコンパクト形式<br>※人数が8名を超える場合は、改行潰れを防ぐため自動で【Part 1】【Part 2】と8名ずつ分割コピーボタンが出現します！',
     'member-manage': '同盟メンバーの追加・編集・削除や、名前・行軍時間の一括登録・テンプレート読み込みを行います。',
