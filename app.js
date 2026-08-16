@@ -2489,9 +2489,17 @@ function updateTimezoneUI() {
   });
   document.getElementById('simple-my-march')?.addEventListener('change', (e) => {
     saveMyMarchTime(e.target.value);
+    if (simpleLaunchState.isCalculated) recalculateSimpleLaunchStateOnMarchChange();
   });
   document.getElementById('simple-my-march')?.addEventListener('input', (e) => {
     saveMyMarchTime(e.target.value);
+    if (simpleLaunchState.isCalculated) recalculateSimpleLaunchStateOnMarchChange();
+  });
+  document.getElementById('simple-enemy-march')?.addEventListener('change', (e) => {
+    if (simpleLaunchState.isCalculated) recalculateSimpleLaunchStateOnMarchChange();
+  });
+  document.getElementById('simple-enemy-march')?.addEventListener('input', (e) => {
+    if (simpleLaunchState.isCalculated) recalculateSimpleLaunchStateOnMarchChange();
   });
 
   // Global Start All Timer (batch starts all currently non-running marches)
@@ -2747,10 +2755,13 @@ function recalculateSimpleLaunchState(newRemSec) {
   const mySec = parseSecondsFromMMSS(myStr);
   const enemySec = parseSecondsFromMMSS(enemyStr);
 
+  let rallyFinishDate;
   let enemyLandDate;
   if (simpleLaunchState.statusMode === 'rally') {
-    enemyLandDate = new Date(now.getTime() + (newRemSec + enemySec) * 1000);
+    rallyFinishDate = new Date(now.getTime() + newRemSec * 1000);
+    enemyLandDate = new Date(rallyFinishDate.getTime() + enemySec * 1000);
   } else {
+    rallyFinishDate = null;
     enemyLandDate = new Date(now.getTime() + newRemSec * 1000);
   }
 
@@ -2758,12 +2769,54 @@ function recalculateSimpleLaunchState(newRemSec) {
 
   simpleLaunchState.calcStartTime = now;
   simpleLaunchState.startRemSec = newRemSec;
+  simpleLaunchState.rallyFinishDate = rallyFinishDate;
   simpleLaunchState.enemyLandDate = enemyLandDate;
   simpleLaunchState.targetLaunchDate = targetLaunchDate;
   simpleLaunchState.myMarchSec = mySec;
   simpleLaunchState.enemyMarchSec = enemySec;
 
   updateSimpleCountdown();
+  updateAllianceTimeline(true);
+}
+
+// v1.04.08 Realtime Automatic Recalculation on March Time Updates
+function recalculateSimpleLaunchStateOnMarchChange() {
+  if (!simpleLaunchState.isCalculated) return;
+
+  const now = getAdjustedNowTime();
+  const myStr = document.getElementById('simple-my-march')?.value || '01:30';
+  const enemyStr = document.getElementById('simple-enemy-march')?.value || '02:15';
+
+  const mySec = parseSecondsFromMMSS(myStr);
+  const enemySec = parseSecondsFromMMSS(enemyStr);
+
+  let enemyLandDate;
+  if (simpleLaunchState.statusMode === 'rally') {
+    // If rallyFinishDate exists, keep the exact rally finish time and shift land time by new enemy march
+    if (simpleLaunchState.rallyFinishDate) {
+      enemyLandDate = new Date(simpleLaunchState.rallyFinishDate.getTime() + enemySec * 1000);
+    } else if (simpleLaunchState.calcStartTime && typeof simpleLaunchState.startRemSec === 'number') {
+      const finishMs = simpleLaunchState.calcStartTime.getTime() + simpleLaunchState.startRemSec * 1000;
+      simpleLaunchState.rallyFinishDate = new Date(finishMs);
+      enemyLandDate = new Date(finishMs + enemySec * 1000);
+    } else {
+      enemyLandDate = simpleLaunchState.enemyLandDate;
+    }
+  } else {
+    // Marching mode: enemyLandDate is the destination time
+    enemyLandDate = simpleLaunchState.enemyLandDate;
+  }
+
+  // Recalculate user's target launch date
+  const targetLaunchDate = new Date(enemyLandDate.getTime() + 300 - mySec * 1000);
+
+  simpleLaunchState.enemyLandDate = enemyLandDate;
+  simpleLaunchState.targetLaunchDate = targetLaunchDate;
+  simpleLaunchState.myMarchSec = mySec;
+  simpleLaunchState.enemyMarchSec = enemySec;
+
+  updateSimpleCountdown();
+  updateAllianceTimeline(true);
 }
 
 function triggerSimpleEnemyLaunch() {
@@ -2796,13 +2849,17 @@ function triggerSimpleEnemyLaunch() {
   }
 
   const now = getAdjustedNowTime();
+  let rallyFinishDate;
   let enemyLandDate;
 
   if (simpleLaunchState.statusMode === 'rally') {
-    // [集結中] 相手着弾時刻 = ボタン押下時刻 + 相手の集結残り時間 + 相手の行軍時間
-    enemyLandDate = new Date(now.getTime() + (remSec + enemySec) * 1000);
+    // [集結中] 相手集結完了時刻 = ボタン押下時刻 + 相手の集結残り時間
+    rallyFinishDate = new Date(now.getTime() + remSec * 1000);
+    // [集結中] 相手着弾時刻 = 相手集結完了時刻 + 相手の行軍時間
+    enemyLandDate = new Date(rallyFinishDate.getTime() + enemySec * 1000);
   } else {
     // [行軍中] 相手着弾時刻 = ボタン押下時刻 + 相手の行軍残り時間
+    rallyFinishDate = null;
     enemyLandDate = new Date(now.getTime() + remSec * 1000);
   }
 
@@ -2829,6 +2886,7 @@ function triggerSimpleEnemyLaunch() {
   simpleLaunchState.isCalculated = true;
   simpleLaunchState.calcStartTime = new Date(now.getTime());
   simpleLaunchState.startRemSec = remSec;
+  simpleLaunchState.rallyFinishDate = rallyFinishDate;
   simpleLaunchState.enemyLandDate = enemyLandDate;
   simpleLaunchState.targetLaunchDate = targetLaunchDate;
   simpleLaunchState.myMarchSec = mySec;
@@ -3977,6 +4035,10 @@ function confirmKeypadTime() {
         saveMyMarchTime(formatted);
       }
       calculateInsertion();
+      // v1.04.08 Realtime live recalculation if calculation is ongoing
+      if (simpleLaunchState.isCalculated) {
+        recalculateSimpleLaunchStateOnMarchChange();
+      }
     }
     closeAllianceKeypadModal();
     return;
@@ -3992,6 +4054,10 @@ function confirmKeypadTime() {
     member.marchSec = totalSec;
     saveAllianceData();
     renderAllianceMemberList();
+    // v1.04.08 Realtime live recalculation if calculation is ongoing
+    if (simpleLaunchState.isCalculated) {
+      updateAllianceTimeline(true);
+    }
     closeAllianceKeypadModal();
     return;
   }
