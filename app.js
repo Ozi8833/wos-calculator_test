@@ -2585,7 +2585,62 @@ function toggleTimezoneBadge() {
   }
 }
 
+// --- Dynamic Local Timezone Resolver (Guaranteed 3-4 char length & emoji) ---
+function getLocalTimezoneInfo() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (tz === 'Asia/Tokyo' || tz.includes('Tokyo') || tz.includes('Japan')) {
+      return { code: 'JST', flag: '🇯🇵', label: 'JST (日本時間)' };
+    }
+    if (tz.includes('Seoul') || tz.includes('Korea')) {
+      return { code: 'KST', flag: '🇰🇷', label: 'KST (韓国時間)' };
+    }
+    if (tz.includes('Taipei') || tz.includes('Taiwan')) {
+      return { code: 'CST', flag: '🇹🇼', label: 'CST (台湾時間)' };
+    }
+    if (tz.includes('Hong_Kong')) {
+      return { code: 'HKT', flag: '🇭🇰', label: 'HKT (香港時間)' };
+    }
+    if (tz.includes('Shanghai') || tz.includes('Beijing') || tz.includes('China')) {
+      return { code: 'CST', flag: '🇨🇳', label: 'CST (中国時間)' };
+    }
+    if (tz.includes('London') || tz.includes('Dublin')) {
+      return { code: 'GMT', flag: '🇬🇧', label: 'GMT (英国時間)' };
+    }
+    if (tz.includes('Los_Angeles') || tz.includes('Vancouver') || tz.includes('Tijuana')) {
+      return { code: 'PST', flag: '🇺🇸', label: 'PST (太平洋時間)' };
+    }
+    if (tz.includes('New_York') || tz.includes('Toronto')) {
+      return { code: 'EST', flag: '🇺🇸', label: 'EST (東部時間)' };
+    }
+    if (tz.includes('Chicago')) {
+      return { code: 'CST', flag: '🇺🇸', label: 'CST (中部時間)' };
+    }
+    if (tz.includes('Denver') || tz.includes('Phoenix')) {
+      return { code: 'MST', flag: '🇺🇸', label: 'MST (山岳部時間)' };
+    }
+    if (tz.includes('Honolulu') || tz.includes('Hawaii')) {
+      return { code: 'HST', flag: '🇺🇸', label: 'HST (ハワイ時間)' };
+    }
+    if (tz.includes('Paris') || tz.includes('Berlin') || tz.includes('Rome') || tz.includes('Madrid')) {
+      return { code: 'CET', flag: '🇪🇺', label: 'CET (中欧時間)' };
+    }
+    if (tz.includes('Sydney') || tz.includes('Melbourne')) {
+      return { code: 'AEST', flag: '🇦🇺', label: 'AEST (豪州東部)' };
+    }
+    // Fallback: Use standard short timeZoneName if available or 'LOCAL'
+    const shortName = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' })
+      .formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value || 'LOCAL';
+    const cleanCode = (shortName.length <= 4 && !shortName.includes('+') && !shortName.includes('-')) ? shortName : 'LOCAL';
+    return { code: cleanCode, flag: '📍', label: `${cleanCode} (現地時間)` };
+  } catch (e) {
+    return { code: 'LOCAL', flag: '📍', label: 'LOCAL (現地時間)' };
+  }
+}
+
 function updateTimezoneUI() {
+  const localInfo = getLocalTimezoneInfo();
   const btn = document.getElementById('btn-tz-toggle');
   if (btn) {
     if (state.timezone === 'UTC') {
@@ -2593,7 +2648,7 @@ function updateTimezoneUI() {
       btn.innerHTML = `<i class="fa-solid fa-globe text-yellow-400"></i> UTC`;
     } else {
       btn.className = "btn-game btn-xs font-mono whitespace-nowrap bg-cyan-950/90 border border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(0,240,255,0.4)] font-black";
-      btn.innerHTML = `<i class="fa-solid fa-globe text-cyan-400"></i> JST`;
+      btn.innerHTML = `<span>${localInfo.flag}</span> ${localInfo.code}`;
     }
   }
 
@@ -2610,7 +2665,7 @@ function updateTimezoneUI() {
       elem.innerHTML = `<span>🌐 ${fullText ? 'UTC (世界標準時)' : 'UTC'}</span>`;
     } else {
       elem.className = "px-2 py-0.5 rounded-full text-xs font-black tracking-wide border shadow-md transition-all flex items-center gap-1 bg-cyan-950/90 border-cyan-400 text-cyan-300 shadow-cyan-500/20";
-      elem.innerHTML = `<span>🇯🇵 ${fullText ? 'JST (ローカル時間)' : 'JST'}</span>`;
+      elem.innerHTML = `<span>${localInfo.flag} ${fullText ? localInfo.label : localInfo.code}</span>`;
     }
   });
 }
@@ -4422,7 +4477,8 @@ function copyAllianceMultiChat(part = 1, limitPerChunk = 0) {
     memberWithDates.sort((a, b) => a.member.name.localeCompare(b.member.name, 'ja'));
   }
 
-  const tzStr = state.timezone === 'UTC' ? 'UTC' : 'JST';
+  const localInfo = getLocalTimezoneInfo();
+  const tzStr = state.timezone === 'UTC' ? 'UTC' : localInfo.code;
   const groupTitle = curGroup.name.replace(/^[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+/, ''); // Strip leading emojis for concise text
 
   // Apply Chunking if requested

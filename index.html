@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.04.13">
+  <link rel="stylesheet" href="style.css?v=1.04.14">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
         <!-- Top Title Header (Above Image Artwork) -->
         <div class="splash-top-header mb-2">
           <h1 class="splash-title-text">⚔️ WHITEOUT SURVIVAL</h1>
-          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.04.13 βテスト版</p>
+          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.04.14 βテスト版</p>
         </div>
 
         <!-- Square Artwork Container -->
@@ -48,7 +48,7 @@
         <div class="brand flex items-center justify-center gap-1.5 w-full">
           <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-base sm:text-lg"></i>
           <span class="font-black text-cyan-400 whitespace-nowrap text-sm sm:text-base tracking-wide">WOS 差込計算</span>
-          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.04.13 β</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.04.14 β</span>
         </div>
 
         <!-- 2nd Row: Action Buttons Bar -->
@@ -1011,26 +1011,29 @@
   <!-- Alliance Member Management Modal (v1.04.00 Group & Search & Quick Input) -->
   <div id="alliance-member-modal" class="modal-backdrop">
     <div class="modal-body max-w-lg">
-      <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-gray-700/60">
-        <h3 class="text-sm sm:text-base font-bold text-cyan-400 flex items-center gap-1.5 whitespace-nowrap">
-          <i class="fa-solid fa-users-gear text-yellow-300"></i> 同盟メンバー管理
-        </h3>
-        <div class="flex items-center gap-1.5">
-          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
-            <button id="btn-toggle-alliance-groups" class="btn-game btn-xs btn-toggle-base btn-toggle-on flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold" onclick="toggleAllianceGroupsArea()" title="グループ選択エリアの表示/非表示">
+      <!-- Modal Header (2-Row Clean Layout for 100% Mobile Safety) -->
+      <div class="mb-2 pb-2 border-b border-gray-700/60 space-y-1.5">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm sm:text-base font-bold text-cyan-400 flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fa-solid fa-users-gear text-yellow-300"></i> 同盟メンバー管理
+          </h3>
+          <button class="text-gray-400 hover:text-white text-xl font-bold p-1 leading-none" onclick="closeAllianceMemberModal()">&times;</button>
+        </div>
+
+        <div class="flex items-center gap-1.5 w-full">
+          <div class="flex items-center flex-1 bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-alliance-groups" class="btn-game btn-xs btn-toggle-base btn-toggle-on flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px] font-bold" onclick="toggleAllianceGroupsArea()" title="グループ選択エリアの表示/非表示">
               <i id="icon-toggle-alliance-groups" class="fa-solid fa-layer-group text-yellow-400"></i> <span id="label-toggle-alliance-groups">グループON</span>
             </button>
             <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'alliance-groups')" title="グループ機能の説明">❓</span>
           </div>
 
-          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
-            <button id="btn-toggle-quick-add" class="btn-game btn-xs btn-toggle-base btn-toggle-off flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold" onclick="toggleAllianceQuickAddArea()" title="個別追加フォームの表示/非表示">
+          <div class="flex items-center flex-1 bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-quick-add" class="btn-game btn-xs btn-toggle-base btn-toggle-off flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px] font-bold" onclick="toggleAllianceQuickAddArea()" title="個別追加フォームの表示/非表示">
               <i id="icon-toggle-quick-add" class="fa-solid fa-user-plus"></i> <span id="label-toggle-quick-add">個別追加OFF</span>
             </button>
             <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'alliance-quick-add')" title="個別追加機能の説明">❓</span>
           </div>
-
-          <button class="text-gray-400 text-xl font-bold p-1 ml-0.5" onclick="closeAllianceMemberModal()">&times;</button>
         </div>
       </div>
 
@@ -1253,6 +1256,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.04.13"></script>
+  <script src="app.js?v=1.04.14"></script>
 </body>
 </html>
