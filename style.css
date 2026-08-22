@@ -542,6 +542,63 @@ header.sticky-header {
   border-radius: 6px;
 }
 
+/* === Toggle Button Style Presets (Neon / Emerald / Gold) === */
+/* Common Toggle Base */
+.btn-toggle-base {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 800 !important;
+  position: relative !important;
+}
+
+/* 1. Neon Cyan (Pattern 1) */
+body[data-btn-theme="neon"] .btn-toggle-on {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.4) 0%, rgba(0, 114, 255, 0.5) 100%) !important;
+  border: 1.5px solid #00f0ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5), inset 0 0 6px rgba(0, 240, 255, 0.25) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+}
+body[data-btn-theme="neon"] .btn-toggle-off {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 2. Emerald Green (Pattern 2) */
+body[data-btn-theme="emerald"] .btn-toggle-on {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.65) 100%) !important;
+  border: 1.5px solid #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5), inset 0 0 6px rgba(16, 185, 129, 0.25) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+}
+body[data-btn-theme="emerald"] .btn-toggle-off {
+  background: rgba(10, 20, 15, 0.6) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  color: #6ee7b7 !important;
+  opacity: 0.6 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 3. Rich Gold (Pattern 3) */
+body[data-btn-theme="gold"] .btn-toggle-on {
+  background: linear-gradient(135deg, rgba(255, 183, 0, 0.45) 0%, rgba(217, 119, 6, 0.65) 100%) !important;
+  border: 1.5px solid #fbbf24 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.5), inset 0 0 6px rgba(251, 191, 36, 0.25) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9) !important;
+}
+body[data-btn-theme="gold"] .btn-toggle-off {
+  background: rgba(25, 20, 10, 0.6) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  color: #d1d5db !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
 /* Time Sync Fine-Tuning Bar */
 .tune-grid {
   display: grid;

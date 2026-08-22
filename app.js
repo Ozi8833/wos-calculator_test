@@ -2190,6 +2190,9 @@ function toggleClockControls(forceState) {
 
   state.settings.clockControlsCollapsed = isCollapsed;
   saveAppSettings();
+  if (typeof updateAllToggleButtonsUI === 'function') {
+    updateAllToggleButtonsUI();
+  }
 }
 
 function toggleCardVisibility(cardKey, isVisible) {
@@ -2287,20 +2290,169 @@ function loadAppSettings() {
   setAllianceFeatureVisible(isAllianceVisible);
 }
 
+// Button Design Theme Management (Neon / Emerald / Gold)
+function setButtonTheme(themeKey) {
+  state.settings.buttonTheme = themeKey || 'neon';
+  saveAppSettings();
+  applyButtonTheme();
+}
+
+function applyButtonTheme() {
+  const currentTheme = state.settings.buttonTheme || 'neon';
+  document.body.setAttribute('data-btn-theme', currentTheme);
+
+  // Update Settings Modal Options Active State
+  ['neon', 'emerald', 'gold'].forEach(key => {
+    const btn = document.getElementById(`btn-theme-opt-${key}`);
+    if (btn) {
+      if (key === currentTheme) {
+        btn.classList.add('active', 'border-2');
+        if (key === 'neon') btn.className = "btn-game btn-xs border-2 border-cyan-400 text-cyan-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-cyan-950/90 shadow-[0_0_12px_rgba(0,240,255,0.6)]";
+        if (key === 'emerald') btn.className = "btn-game btn-xs border-2 border-emerald-400 text-emerald-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-emerald-950/90 shadow-[0_0_12px_rgba(16,185,129,0.6)]";
+        if (key === 'gold') btn.className = "btn-game btn-xs border-2 border-yellow-400 text-yellow-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-yellow-950/90 shadow-[0_0_12px_rgba(251,191,36,0.6)]";
+      } else {
+        btn.className = "btn-game btn-xs border border-gray-700 text-gray-400 font-bold py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-black/40";
+      }
+    }
+  });
+
+  // Re-apply states to toggle buttons
+  updateAllToggleButtonsUI();
+}
+
+function updateAllToggleButtonsUI() {
+  // 1. Alliance Mode Button
+  const isAllianceVisible = state.settings.showAllianceFeatures === true;
+  const btnAlliance = document.getElementById('btn-toggle-alliance-mode');
+  const iconAlliance = document.getElementById('icon-toggle-alliance-mode');
+  const labelAlliance = document.getElementById('label-toggle-alliance-mode');
+  if (btnAlliance) {
+    btnAlliance.className = `btn-game btn-xs btn-toggle-base ${isAllianceVisible ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px] flex-1`;
+  }
+  if (iconAlliance) {
+    iconAlliance.className = isAllianceVisible ? "fa-solid fa-users" : "fa-solid fa-users-slash opacity-60";
+  }
+  if (labelAlliance) {
+    labelAlliance.textContent = isAllianceVisible ? "一斉指示ON" : "一斉指示OFF";
+  }
+
+  // 2. Audio Mute Button
+  const btnSound = document.getElementById('btn-toggle-simple-sound');
+  const iconSound = document.getElementById('icon-toggle-simple-sound');
+  const labelSound = document.getElementById('label-toggle-simple-sound');
+  if (btnSound) {
+    btnSound.className = `btn-game btn-xs btn-toggle-base ${!isSimpleAudioMuted ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px] flex-1`;
+  }
+  if (iconSound) {
+    iconSound.className = !isSimpleAudioMuted ? "fa-solid fa-volume-high" : "fa-solid fa-volume-xmark opacity-60";
+  }
+  if (labelSound) {
+    labelSound.textContent = !isSimpleAudioMuted ? "音声ON" : "音声OFF";
+  }
+
+  // 3. Adjust Buttons Toggle
+  const containerAdjust = document.getElementById('simple-adjust-buttons-container');
+  const isAdjustShown = containerAdjust ? !containerAdjust.classList.contains('hidden') : false;
+  const btnAdjust = document.getElementById('btn-toggle-simple-adjust');
+  const iconAdjust = document.getElementById('icon-toggle-simple-adjust');
+  const labelAdjust = document.getElementById('label-toggle-simple-adjust');
+  if (btnAdjust) {
+    btnAdjust.className = `btn-game btn-xs btn-toggle-base ${isAdjustShown ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px] flex-1`;
+  }
+  if (iconAdjust) {
+    iconAdjust.className = isAdjustShown ? "fa-solid fa-sliders" : "fa-solid fa-sliders opacity-60";
+  }
+  if (labelAdjust) {
+    labelAdjust.textContent = isAdjustShown ? "時間調整ON" : "時間調整OFF";
+  }
+
+  // 4. Clock Controls Toggle in Header
+  const containerClock = document.getElementById('clock-controls-container');
+  const isClockOpen = containerClock ? !containerClock.classList.contains('collapsed') : false;
+  const btnClock = document.getElementById('btn-toggle-clock-controls');
+  const iconClock = document.getElementById('clock-controls-icon');
+  const labelClock = document.getElementById('label-toggle-clock-controls');
+  if (btnClock) {
+    btnClock.className = `btn-game btn-xs btn-toggle-base ${isClockOpen ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center gap-1 font-bold whitespace-nowrap`;
+  }
+  if (iconClock) {
+    iconClock.className = isClockOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down opacity-60';
+  }
+  if (labelClock) {
+    labelClock.textContent = isClockOpen ? "時計調整ON" : "時計調整OFF";
+  }
+
+  // 5. Alliance Timeline Card Collapse Toggle
+  const btnTimeline = document.getElementById('btn-toggle-alliance-timeline');
+  const iconTimeline = document.getElementById('icon-toggle-alliance-timeline');
+  const labelTimeline = document.getElementById('label-toggle-alliance-timeline');
+  const isTimelineOpen = typeof isAllianceTimelineCollapsed !== 'undefined' ? !isAllianceTimelineCollapsed : true;
+  if (btnTimeline) {
+    btnTimeline.className = `btn-game btn-xs btn-toggle-base ${isTimelineOpen ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center gap-0.5 whitespace-nowrap px-2 font-bold`;
+  }
+  if (iconTimeline) {
+    iconTimeline.className = isTimelineOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down opacity-60';
+  }
+  if (labelTimeline) {
+    labelTimeline.textContent = isTimelineOpen ? 'タイムラインON' : 'タイムラインOFF';
+  }
+
+  // 6. Alliance Group Area Toggle
+  const groupsArea = document.getElementById('alliance-groups-area');
+  const isGroupsOpen = groupsArea ? !groupsArea.classList.contains('hidden') : true;
+  const btnGroups = document.getElementById('btn-toggle-alliance-groups');
+  const iconGroups = document.getElementById('icon-toggle-alliance-groups');
+  const labelGroups = document.getElementById('label-toggle-alliance-groups');
+  if (btnGroups) {
+    btnGroups.className = `btn-game btn-xs btn-toggle-base ${isGroupsOpen ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold`;
+  }
+  if (iconGroups) {
+    iconGroups.className = isGroupsOpen ? 'fa-solid fa-layer-group text-yellow-400' : 'fa-solid fa-layer-group opacity-60';
+  }
+  if (labelGroups) {
+    labelGroups.textContent = isGroupsOpen ? 'グループON' : 'グループOFF';
+  }
+
+  // 7. Alliance Member Quick Add Area Toggle
+  const quickAddArea = document.getElementById('alliance-quick-add-area');
+  const isQuickAddOpen = quickAddArea ? !quickAddArea.classList.contains('hidden') : false;
+  const btnQuickAdd = document.getElementById('btn-toggle-quick-add');
+  const iconQuickAdd = document.getElementById('icon-toggle-quick-add');
+  const labelQuickAdd = document.getElementById('label-toggle-quick-add');
+  if (btnQuickAdd) {
+    btnQuickAdd.className = `btn-game btn-xs btn-toggle-base ${isQuickAddOpen ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold`;
+  }
+  if (iconQuickAdd) {
+    iconQuickAdd.className = isQuickAddOpen ? 'fa-solid fa-user-plus' : 'fa-solid fa-user-plus opacity-60';
+  }
+  if (labelQuickAdd) {
+    labelQuickAdd.textContent = isQuickAddOpen ? '個別追加ON' : '個別追加OFF';
+  }
+
+  // 8. Alliance Batch Import Area Toggle
+  const batchImportArea = document.getElementById('alliance-batch-import-area');
+  const isBatchImportOpen = batchImportArea ? !batchImportArea.classList.contains('hidden') : false;
+  const btnBatchImport = document.getElementById('btn-toggle-alliance-batch-import');
+  const iconBatchImport = document.getElementById('icon-toggle-alliance-batch-import');
+  const labelBatchImport = document.getElementById('label-toggle-alliance-batch-import');
+  if (btnBatchImport) {
+    btnBatchImport.className = `btn-game btn-xs btn-toggle-base ${isBatchImportOpen ? 'btn-toggle-on' : 'btn-toggle-off'} flex items-center justify-center gap-0.5 whitespace-nowrap py-1 px-2 text-[11px] font-bold`;
+  }
+  if (iconBatchImport) {
+    iconBatchImport.className = isBatchImportOpen ? 'fa-solid fa-file-import' : 'fa-solid fa-file-import opacity-60';
+  }
+  if (labelBatchImport) {
+    labelBatchImport.textContent = isBatchImportOpen ? '一括登録ON' : '一括登録OFF';
+  }
+}
+
 // v1.03.09 Audio Mute Control for Simple Mode
 let isSimpleAudioMuted = false;
 
 function setSimpleAudioMuteState(muted) {
   isSimpleAudioMuted = muted;
   localStorage.setItem('wos_simple_audio_muted', muted ? 'true' : 'false');
-
-  const label = document.getElementById('label-toggle-simple-sound');
-  const icon = document.getElementById('icon-toggle-simple-sound');
-  const btn = document.getElementById('btn-toggle-simple-sound');
-
-  if (label) label.textContent = muted ? '🔇 ミュート' : '🔊 音声ON';
-  if (icon) icon.className = muted ? 'fa-solid fa-volume-xmark text-gray-400' : 'fa-solid fa-volume-high text-yellow-400';
-  if (btn) btn.className = `btn-game btn-xs ${muted ? 'btn-secondary opacity-70' : 'btn-secondary'} flex items-center gap-0.5 whitespace-nowrap px-1.5`;
+  updateAllToggleButtonsUI();
 }
 
 function toggleSimpleAudioMute() {
@@ -2393,6 +2545,7 @@ function initApp() {
   calculateInsertion();
   startClockLoop();
   updateTimezoneUI();
+  applyButtonTheme();
 
   // Tap to start splash handler (Button & Overlay)
   const hideSplash = () => {
@@ -2424,12 +2577,24 @@ function toggleTimezoneBadge() {
   updateTimezoneUI();
   calculateInsertion();
   renderMarchCards();
+  if (typeof updateSimpleCountdown === 'function') {
+    updateSimpleCountdown();
+  }
+  if (typeof updateAllianceTimeline === 'function') {
+    updateAllianceTimeline();
+  }
 }
 
 function updateTimezoneUI() {
   const btn = document.getElementById('btn-tz-toggle');
   if (btn) {
-    btn.innerHTML = `<i class="fa-solid fa-globe"></i> ${state.timezone}`;
+    if (state.timezone === 'UTC') {
+      btn.className = "btn-game btn-xs font-mono whitespace-nowrap bg-yellow-950/90 border border-yellow-400 text-yellow-300 shadow-[0_0_10px_rgba(251,191,36,0.4)] font-black";
+      btn.innerHTML = `<i class="fa-solid fa-globe text-yellow-400"></i> UTC`;
+    } else {
+      btn.className = "btn-game btn-xs font-mono whitespace-nowrap bg-cyan-950/90 border border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(0,240,255,0.4)] font-black";
+      btn.innerHTML = `<i class="fa-solid fa-globe text-cyan-400"></i> JST`;
+    }
   }
 
   const badges = [
@@ -2639,12 +2804,9 @@ function toggleSimpleAdjustButtons(forceState) {
   if (icon) {
     icon.className = isHidden ? 'fa-solid fa-sliders' : 'fa-sliders text-cyan-400';
   }
-  if (label) {
-    label.textContent = isHidden ? '調整表示' : '調整隠す';
-  }
-
   state.settings.hideSimpleAdjustButtons = isHidden;
   saveAppSettings();
+  updateAllToggleButtonsUI();
 }
 
 // v1.03.64 Alliance Features (Chat Copy & Timeline) Visibility Switch
@@ -2670,18 +2832,10 @@ function setAllianceFeatureVisible(isVisible) {
   if (timelineCard) {
     timelineCard.style.display = isVisible ? 'block' : 'none';
   }
-  if (btnToggle) {
-    btnToggle.className = isVisible ? "btn-game btn-xs btn-primary flex items-center gap-0.5 whitespace-nowrap px-1.5 active" : "btn-game btn-xs btn-secondary flex items-center gap-0.5 whitespace-nowrap px-1.5";
-  }
-  if (iconToggle) {
-    iconToggle.className = isVisible ? "fa-solid fa-users text-yellow-300" : "fa-solid fa-users-slash text-gray-400";
-  }
-  if (labelToggle) {
-    labelToggle.textContent = isVisible ? "同盟ON" : "同盟OFF";
-  }
   if (settingCheckbox) {
     settingCheckbox.checked = isVisible;
   }
+  updateAllToggleButtonsUI();
 }
 
 function setSimpleStatusMode(mode) {
@@ -2901,21 +3055,24 @@ function updateSimpleCountdown() {
 
   const now = getAdjustedNowTime();
 
-  // 1. Check if the LAST alliance member's launch time has passed (v1.03.17 Auto-Completion Check)
-  const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+  // 1. Check if the LAST member's launch time has passed (v1.04.09 1.5s Quick Completion & Alliance Toggle Check)
   let maxLaunchTimeMs = simpleLaunchState.targetLaunchDate.getTime();
+  const isAllianceEnabled = state.settings.showAllianceFeatures === true;
 
-  if (selectedMembers.length > 0) {
-    selectedMembers.forEach(m => {
-      const memberLaunchMs = simpleLaunchState.enemyLandDate.getTime() + 300 - m.marchSec * 1000;
-      if (memberLaunchMs > maxLaunchTimeMs) {
-        maxLaunchTimeMs = memberLaunchMs;
-      }
-    });
+  if (isAllianceEnabled) {
+    const selectedMembers = allianceMembers.filter(m => m.selected !== false);
+    if (selectedMembers.length > 0) {
+      selectedMembers.forEach(m => {
+        const memberLaunchMs = simpleLaunchState.enemyLandDate.getTime() + 300 - m.marchSec * 1000;
+        if (memberLaunchMs > maxLaunchTimeMs) {
+          maxLaunchTimeMs = memberLaunchMs;
+        }
+      });
+    }
   }
 
-  // If the last alliance launch time + 3s buffer has passed, automatically complete & reset cleanly!
-  if (now.getTime() > maxLaunchTimeMs + 3000) {
+  // If the last launch time + 1.5s buffer has passed, automatically complete & reset cleanly!
+  if (now.getTime() > maxLaunchTimeMs + 1500) {
     resetSimpleLaunchCalculation();
     return;
   }
@@ -3049,20 +3206,15 @@ let selectedTimelineMemberName = null;
 
 function toggleAllianceTimelineCard() {
   const content = document.getElementById('alliance-timeline-content');
-  const label = document.getElementById('label-toggle-alliance-timeline');
-  const icon = document.getElementById('icon-toggle-alliance-timeline');
   if (!content) return;
 
   isAllianceTimelineCollapsed = !isAllianceTimelineCollapsed;
   if (isAllianceTimelineCollapsed) {
     content.classList.add('hidden');
-    if (label) label.textContent = '展開する';
-    if (icon) icon.className = 'fa-solid fa-chevron-down text-cyan-300';
   } else {
     content.classList.remove('hidden');
-    if (label) label.textContent = '折りたたむ';
-    if (icon) icon.className = 'fa-solid fa-chevron-up text-cyan-300';
   }
+  updateAllToggleButtonsUI();
 }
 
 function selectTimelineRowMember(name) {
@@ -3555,11 +3707,28 @@ function closeAllianceMemberSelectionModal() {
   if (modal) modal.classList.remove('open');
 }
 
+function toggleAllianceGroupsArea() {
+  const area = document.getElementById('alliance-groups-area');
+  if (area) {
+    area.classList.toggle('hidden');
+  }
+  updateAllToggleButtonsUI();
+}
+
+function toggleAllianceQuickAddArea() {
+  const area = document.getElementById('alliance-quick-add-area');
+  if (area) {
+    area.classList.toggle('hidden');
+  }
+  updateAllToggleButtonsUI();
+}
+
 function toggleAllianceBatchImportArea() {
   const area = document.getElementById('alliance-batch-import-area');
   if (area) {
     area.classList.toggle('hidden');
   }
+  updateAllToggleButtonsUI();
 }
 
 // Quick Add Member (Name + Seconds)
@@ -3611,21 +3780,38 @@ function quickAddAllianceMember() {
   nameInput.focus();
 }
 
-// Sorting Helpers
+// Sorting Helpers with Visual State Updates
+let allianceMemberSortMode = 'name'; // 'name' or 'time'
+
 function sortAllianceMembersByName() {
+  allianceMemberSortMode = 'name';
   const curGroup = getActiveAllianceGroup();
   if (!curGroup) return;
   curGroup.members.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   saveAllianceData();
   renderAllianceMemberList();
+  updateMemberSortButtonsUI();
 }
 
 function sortAllianceMembersByTime() {
+  allianceMemberSortMode = 'time';
   const curGroup = getActiveAllianceGroup();
   if (!curGroup) return;
   curGroup.members.sort((a, b) => a.marchSec - b.marchSec);
   saveAllianceData();
   renderAllianceMemberList();
+  updateMemberSortButtonsUI();
+}
+
+function updateMemberSortButtonsUI() {
+  const btnName = document.getElementById('btn-member-sort-name');
+  const btnTime = document.getElementById('btn-member-sort-time');
+  if (btnName) {
+    btnName.className = `btn-game btn-xs ${allianceMemberSortMode === 'name' ? 'btn-primary active font-black' : 'btn-secondary font-bold'} py-0.5 px-2 text-[11px] whitespace-nowrap`;
+  }
+  if (btnTime) {
+    btnTime.className = `btn-game btn-xs ${allianceMemberSortMode === 'time' ? 'btn-primary active font-black' : 'btn-secondary font-bold'} py-0.5 px-2 text-[11px] whitespace-nowrap`;
+  }
 }
 
 // Quick Load Sample 65 Members Helper
@@ -4292,19 +4478,19 @@ function toggleHelpTooltip(event, helpKey) {
   }
 
   const helpTexts = {
-    'simple-sound': '【🔊 発車カウントダウン音声】<br>発車3秒前からの「3、2、1、発車！」音声アナウンス・ビープ音のON/OFFを切り替えます。',
-    'simple-adjust': '【🎛️ 調整ボタン表示】<br>集結残り時間の調整ボタン（[0分〜5分] や [00s〜50s] など）の表示/非表示を切り替えます。',
-    'simple-alliance': '【👥 同盟チャット・タイムライン機能】<br>同盟員全員の発車スケジュールを一覧表示する「タイムライン」や、チャットへの一括指示コピー機能の表示/非表示を切り替えます。<br>※個人利用時はOFFにしておくことで画面をスッキリ広々と利用できます！',
+    'simple-sound': '【🔊 音声ON / 🔇 音声OFF】<br>発車3秒前からの「3、2、1、発車！」音声アナウンス・ビープ音の有効/無効を切り替えます。',
+    'simple-adjust': '【🎛️ 時間調整ON / 時間調整OFF】<br>集結残り時間のクイック調整ボタン（[0分〜5分] や [00s〜50s] など）の表示/非表示を切り替えます。',
+    'simple-alliance': '【👥 一斉指示ON / 👥 一斉指示OFF】<br>同盟員全員の発車スケジュールを一覧表示する「タイムライン」や、チャットへの一括指示コピー機能の表示/非表示を切り替えます。<br>※個人利用時はOFFにしておくことで画面をスッキリ広々と利用できます！',
     'my-march': '自分が出征してターゲット(砦や王城等)に到着するまでの時間（分:秒）を入力します。※ホワサバ内の出征画面右下に表示されています。',
     'enemy-march': '相手(敵)が出征してターゲット(砦や王城等)に到着する時間を入力します。※ホワサバ内の集結画面で集結中から行軍中に切り替わった際の秒数を確認します。',
-    'enemy-rem': 'ホワサバ内の集結画面に表示されている集結中時間を入力します。※画面上部の【調整表示ボタン】を押すと調整同期ボタンが表示されます。',
+    'enemy-rem': 'ホワサバ内の集結画面に表示されている集結中時間を入力します。※画面上部の【時間調整ON】を押すと調整同期ボタンが表示されます。',
     'status-mode': 'ホワサバ内の集結画面に表示されている相手(敵)が【集結中】もしくは【行軍中】かを選択します。',
-    'alliance-timeline': '【送信選択】で選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。行をタップすると黄色枠で注目トラッキングできます。',
-    'alliance-groups': '【🏰 ターゲット別グループ管理】<br>「砦1班」「王城班」「SVS精鋭」など複数の部隊グループを作成・切替できます。<br>※<b>グループごとに行軍時間を個別に保持</b>するため、ターゲットが変わってもワンタップでその場所の秒数に瞬時切り替え可能です！',
-    'alliance-quick-add': '【➕ スマホ爆速追加】<br>「名前」と「行軍時間」を入力して「追加」を押すだけで連続登録できます。<br>※秒数のみ（例: <code>30</code> ➔ 00:30）の入力でも自動認識されます！',
+    'alliance-timeline': '【⏱️ タイムラインON / タイムラインOFF】<br>選択されている同盟メンバー全員の発車時刻と、最速で発車する人からの時間差（+◯.◯秒）を一覧表示します。右上のボタンで展開/折りたたみを切り替えられます。行をタップすると黄色枠で注目トラッキングできます。',
+    'alliance-groups': '【🏰 グループON / 🏰 グループOFF】<br>「砦1班」「王城班」「SVS精鋭」などターゲット別グループの切替・作成エリアの表示/非表示を切り替えます。<br>※グループを非表示にすることで、メンバー一覧をさらに広々と確認・検索できます！',
+    'alliance-quick-add': '【➕ 個別追加ON / ➕ 個別追加OFF】<br>メンバーを名前と秒数で1人ずつ手動登録する入力フォームの表示/非表示を切り替えます。<br>※登録完了後はOFFにしておくことで、メンバー一覧をスッキリ広々と確認できます！秒数のみ（例: <code>30</code> ➔ 00:30）の入力でも自動認識されます。',
     'alliance-search': '【🔍 複数キーワード一括検索】<br>名前や秒数を1文字打つだけでリアルタイム絞り込みができます。<br>💡 <b>複数人検索の裏技</b>:<br>「<code>ひまり、はるさん、白大福もちこ</code>」のように読点「、」やカンマ「,」、スペース区切りで入力すると、該当する複数メンバーをまとめて一覧に抽出できます！',
     'alliance-keypad': '【⏱️ 専用ミニテンキーパッド】<br>メンバーの行軍時間ボタン（例: <code>⏱ 00:23 📝</code>）をタップすると専用テンキーが出現し、スマホのキーボードを開かずに <code>[3] [0] [確定]</code> や <code>[+1s]</code> でサクサク秒数変更できます！',
-    'alliance-batch-import': '【📋 テキスト / CSV 一括貼り付け】<br><code>名前, 行軍時間(分:秒)</code> の形式で、カンマ・スペース・タブ区切りの改行テキストをまとめて現在のグループへ一括登録できます。「サンプル65名」ボタンでテストデータも一発セット可能です。',
+    'alliance-batch-import': '【📥 一括登録ON / 📥 一括登録OFF】<br>テキストやCSV形式で複数メンバーを一括登録・エクスポートするエリアの展開/折りたたみを切り替えます。<br>※<code>名前, 行軍時間(分:秒)</code> の形式で、カンマ・スペース・タブ区切りの改行テキストをまとめて現在のグループへ一括登録できます。「サンプル65名」ボタンでテストデータも一発セット可能です。',
     'alliance-selection-group': '【グループ一括選択】<br>上部のグループタブ（砦1班、王城班など）をタップすると、そのグループに所属するメンバーの選択状態へ一瞬で切り替わります。',
     'copy-order': '同盟チャットに指示を貼り付ける際、名前順で並べるか、発車時刻が早い順で並べるかを選択できます。',
     'chat-format': '【ホワサバのチャット改行・文字数制限対策】<br>ホワサバのチャットは1メッセージあたり最大10行前後の制限があります。<br>・<b>📄 標準形式</b>: 詳細な発車指示文<br>・<b>⚡️ 超短縮形式</b>: 1行を極限まで短縮したコンパクト形式<br>※人数が8名を超える場合は、改行潰れを防ぐため自動で【Part 1】【Part 2】と8名ずつ分割コピーボタンが出現します！',

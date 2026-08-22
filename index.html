@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.04.08 βテスト版)</title>
+  <title>ホワサバ 差し込み計算＆マルチ行軍トラッカー (v1.04.10 βテスト版)</title>
   <meta name="description" content="Whiteout Survival(ホワサバ) 0.1秒精度 差し込み計算＆マルチ行軍トラッカー">
   <meta name="theme-color" content="#00f0ff">
   
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css?v=1.04.08">
+  <link rel="stylesheet" href="style.css?v=1.04.13">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
         <!-- Top Title Header (Above Image Artwork) -->
         <div class="splash-top-header mb-2">
           <h1 class="splash-title-text">⚔️ WHITEOUT SURVIVAL</h1>
-          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.04.08 βテスト版</p>
+          <p class="splash-subtitle-text">差し込み計算 ＆ シングル/同盟一斉統合モード v1.04.13 βテスト版</p>
         </div>
 
         <!-- Square Artwork Container -->
@@ -48,14 +48,14 @@
         <div class="brand flex items-center justify-center gap-1.5 w-full">
           <i class="fa-solid fa-shield-halved brand-icon text-cyan-400 text-base sm:text-lg"></i>
           <span class="font-black text-cyan-400 whitespace-nowrap text-sm sm:text-base tracking-wide">WOS 差込計算</span>
-          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.04.08 β</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wider bg-yellow-950/80 border border-yellow-500/60 text-yellow-300 shadow">v1.04.13 β</span>
         </div>
 
         <!-- 2nd Row: Action Buttons Bar -->
         <div class="header-buttons-row flex items-center justify-center gap-1 sm:gap-1.5 w-full flex-wrap">
           <!-- Clock Adjustment Bar Toggle Button -->
           <button id="btn-toggle-clock-controls" class="btn-game btn-xs btn-secondary flex items-center gap-1 font-bold whitespace-nowrap" onclick="toggleClockControls()" title="時計調整エリアの表示/非表示">
-            <i id="clock-controls-icon" class="fa-solid fa-chevron-up text-cyan-400"></i> 時計調整
+            <i id="clock-controls-icon" class="fa-solid fa-chevron-up text-cyan-400"></i> <span id="label-toggle-clock-controls">時計調整ON</span>
           </button>
           <!-- Floating Draggable Mini Memo Button (Top Navigation Bar) -->
           <button id="btn-top-floating-memo" class="btn-game btn-xs btn-accent flex items-center gap-1 font-bold whitespace-nowrap shadow" onclick="toggleFloatingMemoFromCard()" title="簡易ミニメモの表示/非表示">
@@ -195,14 +195,14 @@
 
           <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
             <button id="btn-toggle-simple-adjust" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleSimpleAdjustButtons()" title="調整ボタンの表示/非表示">
-              <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders"></i> <span id="label-toggle-simple-adjust">調整表示</span>
+              <i id="icon-toggle-simple-adjust" class="fa-solid fa-sliders"></i> <span id="label-toggle-simple-adjust">時間調整ON</span>
             </button>
             <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'simple-adjust')" title="調整ボタンの説明">❓</span>
           </div>
 
           <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
-            <button id="btn-toggle-alliance-mode" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleAllianceFeature()" title="同盟チャットコピー＆タイムライン機能のON/OFF">
-              <i id="icon-toggle-alliance-mode" class="fa-solid fa-users text-cyan-400"></i> <span id="label-toggle-alliance-mode">同盟ON</span>
+            <button id="btn-toggle-alliance-mode" class="btn-game btn-xs btn-secondary flex-1 flex items-center justify-center gap-0.5 whitespace-nowrap py-1 text-[11px]" onclick="toggleAllianceFeature()" title="同盟一斉指示＆タイムライン機能のON/OFF">
+              <i id="icon-toggle-alliance-mode" class="fa-solid fa-users text-cyan-400"></i> <span id="label-toggle-alliance-mode">一斉指示ON</span>
             </button>
             <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'simple-alliance')" title="同盟機能の説明">❓</span>
           </div>
@@ -843,6 +843,25 @@
           <input type="checkbox" id="setting-sticky-header" class="w-5 h-5 accent-cyan-400" checked>
         </div>
 
+        <!-- Button ON/OFF Style Presets (Neon / Emerald / Gold) -->
+        <div class="border-b border-gray-700 pb-3">
+          <label class="block font-bold mb-1.5 text-cyan-300">🔘 ボタンON/OFFデザイン切替</label>
+          <div class="grid grid-cols-3 gap-1.5 mb-1">
+            <button id="btn-theme-opt-neon" class="btn-game btn-xs border border-cyan-400 text-cyan-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-cyan-950/90" onclick="setButtonTheme('neon')">
+              <span class="text-xs">パターン 1</span>
+              <span class="text-[10px] text-gray-300">ネオンシアン</span>
+            </button>
+            <button id="btn-theme-opt-emerald" class="btn-game btn-xs border border-emerald-400 text-emerald-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-emerald-950/90" onclick="setButtonTheme('emerald')">
+              <span class="text-xs">パターン 2</span>
+              <span class="text-[10px] text-gray-300">エメラルド</span>
+            </button>
+            <button id="btn-theme-opt-gold" class="btn-game btn-xs border border-yellow-400 text-yellow-300 font-black py-1.5 text-center flex flex-col items-center justify-center gap-0.5 rounded-lg bg-yellow-950/90" onclick="setButtonTheme('gold')">
+              <span class="text-xs">パターン 3</span>
+              <span class="text-[10px] text-gray-300">ゴールド</span>
+            </button>
+          </div>
+        </div>
+
         <div class="flex justify-between items-center border-b border-gray-700 pb-2">
           <div>
             <div class="font-bold text-cyan-300">👥 同盟チャット・タイムライン機能</div>
@@ -992,15 +1011,31 @@
   <!-- Alliance Member Management Modal (v1.04.00 Group & Search & Quick Input) -->
   <div id="alliance-member-modal" class="modal-backdrop">
     <div class="modal-body max-w-lg">
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="text-base font-bold text-cyan-400 flex items-center gap-1.5">
-          <i class="fa-solid fa-users-gear text-yellow-300"></i> 同盟メンバー・グループ管理
+      <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-gray-700/60">
+        <h3 class="text-sm sm:text-base font-bold text-cyan-400 flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-users-gear text-yellow-300"></i> 同盟メンバー管理
         </h3>
-        <button class="text-gray-400 text-xl font-bold p-1" onclick="closeAllianceMemberModal()">&times;</button>
+        <div class="flex items-center gap-1.5">
+          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-alliance-groups" class="btn-game btn-xs btn-toggle-base btn-toggle-on flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold" onclick="toggleAllianceGroupsArea()" title="グループ選択エリアの表示/非表示">
+              <i id="icon-toggle-alliance-groups" class="fa-solid fa-layer-group text-yellow-400"></i> <span id="label-toggle-alliance-groups">グループON</span>
+            </button>
+            <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'alliance-groups')" title="グループ機能の説明">❓</span>
+          </div>
+
+          <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+            <button id="btn-toggle-quick-add" class="btn-game btn-xs btn-toggle-base btn-toggle-off flex items-center gap-0.5 whitespace-nowrap px-2 py-1 text-[11px] font-bold" onclick="toggleAllianceQuickAddArea()" title="個別追加フォームの表示/非表示">
+              <i id="icon-toggle-quick-add" class="fa-solid fa-user-plus"></i> <span id="label-toggle-quick-add">個別追加OFF</span>
+            </button>
+            <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'alliance-quick-add')" title="個別追加機能の説明">❓</span>
+          </div>
+
+          <button class="text-gray-400 text-xl font-bold p-1 ml-0.5" onclick="closeAllianceMemberModal()">&times;</button>
+        </div>
       </div>
 
       <!-- Group (Preset) Switcher & Management Bar -->
-      <div class="bg-black/50 p-2 rounded-lg border border-yellow-500/40 mb-2 space-y-1.5">
+      <div id="alliance-groups-area" class="bg-black/50 p-2 rounded-lg border border-yellow-500/40 mb-2 space-y-1.5">
         <div class="flex justify-between items-center text-xs">
           <span class="font-bold text-yellow-300 flex items-center gap-1">
             <i class="fa-solid fa-layer-group text-yellow-400"></i> 現在のグループ:
@@ -1025,46 +1060,60 @@
       </div>
       
       <div class="space-y-2.5 text-xs">
-        <!-- Mobile-Optimized Quick Add Form (Name + Seconds) -->
-        <div class="bg-black/40 p-2.5 rounded-lg border border-cyan-500/40 space-y-1.5">
+        <!-- Mobile-Optimized Quick Add Form (Name + Seconds) - Default Collapsed for Clean View -->
+        <div id="alliance-quick-add-area" class="bg-black/40 p-2.5 rounded-lg border border-cyan-500/40 space-y-2 hidden">
           <div class="font-bold text-cyan-300 flex justify-between items-center text-[11px]">
             <span class="flex items-center gap-1">
-              ➕ メンバーを1人ずつ爆速追加
+              ➕ メンバーを1人ずつ追加
               <span class="help-icon-btn" onclick="toggleHelpTooltip(event, 'alliance-quick-add')" title="解説を見る">❓</span>
             </span>
             <span class="text-gray-400 font-normal">秒数のみ(例:30)でも自動認識</span>
           </div>
+          <div>
+            <input type="text" id="quick-add-member-name" class="game-input text-xs w-full py-1.5 px-2.5" placeholder="名前 (例: 山田)" onkeydown="if(event.key==='Enter') document.getElementById('quick-add-member-time').focus()">
+          </div>
           <div class="flex gap-1.5 items-center">
-            <input type="text" id="quick-add-member-name" class="game-input text-xs flex-1 py-1.5 px-2" placeholder="名前 (例: 山田)" onkeydown="if(event.key==='Enter') document.getElementById('quick-add-member-time').focus()">
-            <input type="text" id="quick-add-member-time" class="game-input text-xs w-28 py-1.5 px-2 font-mono text-center" placeholder="行軍 (例: 30 or 01:30)" onkeydown="if(event.key==='Enter') quickAddAllianceMember()">
-            <button class="btn-game btn-xs btn-accent py-1.5 px-3 font-bold whitespace-nowrap text-xs shadow" onclick="quickAddAllianceMember()">
+            <input type="text" id="quick-add-member-time" class="game-input text-xs flex-1 py-1.5 px-2.5 font-mono" placeholder="行軍時間 (例: 30 または 01:30)" onkeydown="if(event.key==='Enter') quickAddAllianceMember()">
+            <button class="btn-game btn-xs btn-accent py-1.5 px-4 font-bold whitespace-nowrap text-xs shadow" onclick="quickAddAllianceMember()">
               <i class="fa-solid fa-plus"></i> 追加
             </button>
           </div>
         </div>
 
         <!-- Search Bar & Member List Header -->
-        <div class="space-y-1.5">
+        <div class="space-y-1">
+          <div class="text-[11px] text-gray-300 flex items-center justify-between px-0.5">
+            <span class="truncate">💡 複数検索: 「山田、佐藤」のように読点「、」で一括抽出</span>
+            <span class="help-icon-btn shrink-0" onclick="toggleHelpTooltip(event, 'alliance-search')" title="解説を見る">❓</span>
+          </div>
           <div class="flex items-center gap-1.5">
             <div class="relative flex-1">
-              <input type="text" id="alliance-member-search" class="game-input text-xs w-full py-1 pl-7 pr-2" placeholder="🔍 名前・読点「、」で複数一括検索 (例: 山田、佐藤)..." oninput="renderAllianceMemberList()">
-              <i class="fa-solid fa-magnifying-glass absolute left-2 top-2 text-gray-400 text-xs pointer-events-none"></i>
+              <input type="text" id="alliance-member-search" class="game-input text-xs w-full py-1.5 pl-7 pr-2" placeholder="🔍 メンバー名を検索..." oninput="renderAllianceMemberList()">
+              <i class="fa-solid fa-magnifying-glass absolute left-2 top-2.5 text-gray-400 text-xs pointer-events-none"></i>
             </div>
-            <span class="help-icon-btn shrink-0" onclick="toggleHelpTooltip(event, 'alliance-search')" title="解説を見る">❓</span>
-            <button class="btn-game btn-xs btn-secondary py-1 px-2 whitespace-nowrap text-[11px]" onclick="toggleAllianceBatchImportArea()">
-              <i class="fa-solid fa-file-import text-cyan-300"></i> 一括登録/出力
-            </button>
+            <div class="flex items-center bg-black/40 rounded p-0.5 border border-cyan-500/20">
+              <button id="btn-toggle-alliance-batch-import" class="btn-game btn-xs btn-toggle-base btn-toggle-off flex items-center justify-center gap-0.5 whitespace-nowrap py-1 px-2 text-[11px] font-bold" onclick="toggleAllianceBatchImportArea()" title="一括登録/出力エリアの表示/非表示">
+                <i id="icon-toggle-alliance-batch-import" class="fa-solid fa-file-import"></i> <span id="label-toggle-alliance-batch-import">一括登録OFF</span>
+              </button>
+              <span class="help-icon-btn shrink-0 ml-0.5 text-[10px]" onclick="toggleHelpTooltip(event, 'alliance-batch-import')" title="一括登録の説明">❓</span>
+            </div>
           </div>
 
-          <div class="flex justify-between items-center font-bold text-cyan-300 border-b border-cyan-900 pb-1 text-xs">
+          <div class="flex justify-between items-center font-bold text-cyan-300 border-b border-cyan-900 pb-1.5 text-xs mt-1.5">
             <span class="flex items-center gap-1">
               グループ所属メンバー (<span id="alliance-modal-member-count">0</span>名)
               <span class="help-icon-btn" onclick="toggleHelpTooltip(event, 'alliance-keypad')" title="解説を見る">❓</span>
             </span>
-            <div class="flex gap-2">
-              <button class="text-gray-400 hover:text-cyan-300 text-[11px]" onclick="sortAllianceMembersByName()">🔤 名前順</button>
-              <button class="text-gray-400 hover:text-cyan-300 text-[11px]" onclick="sortAllianceMembersByTime()">⏱ 行軍時間順</button>
-              <button class="text-red-400 hover:underline text-[11px]" onclick="clearAllAllianceMembers()">全消去</button>
+            <div class="flex gap-1.5 items-center">
+              <button id="btn-member-sort-name" class="btn-game btn-xs btn-primary active py-0.5 px-2 text-[11px] font-bold whitespace-nowrap" onclick="sortAllianceMembersByName()">
+                🔤 名前順
+              </button>
+              <button id="btn-member-sort-time" class="btn-game btn-xs btn-secondary py-0.5 px-2 text-[11px] font-bold whitespace-nowrap" onclick="sortAllianceMembersByTime()">
+                ⏱ 行軍順
+              </button>
+              <button class="btn-game btn-xs btn-danger py-0.5 px-2 text-[11px] font-bold whitespace-nowrap" onclick="clearAllAllianceMembers()">
+                <i class="fa-solid fa-trash"></i> 全消去
+              </button>
             </div>
           </div>
         </div>
@@ -1077,7 +1126,7 @@
               <span class="help-icon-btn" onclick="toggleHelpTooltip(event, 'alliance-batch-import')" title="解説を見る">❓</span>
             </span>
             <div class="flex gap-1">
-              <button class="btn-game btn-xs bg-yellow-950 border border-yellow-500/50 text-yellow-300 px-1.5 py-0.5 text-[10px]" onclick="loadSample65MembersToTextarea()">サンプル65名</button>
+              <button class="btn-game btn-xs bg-yellow-950 border border-yellow-500/50 text-yellow-300 px-1.5 py-0.5 text-[10px] whitespace-nowrap" onclick="loadSample65MembersToTextarea()">サンプル65名</button>
               <button class="btn-game btn-xs bg-cyan-950 border border-cyan-500/50 text-cyan-300 px-1.5 py-0.5 text-[10px]" onclick="downloadAllianceTemplate('csv')">参考CSV</button>
             </div>
           </div>
@@ -1093,8 +1142,8 @@
           </div>
         </div>
 
-        <!-- Member List Container (Click time to open quick keypad) -->
-        <div id="alliance-member-list-container" class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+        <!-- Member List Container (Click time to open quick keypad) - Expanded to max-h-[50vh] -->
+        <div id="alliance-member-list-container" class="max-h-[50vh] overflow-y-auto space-y-1.5 pr-1">
           <!-- Member items rendered here -->
         </div>
       </div>
@@ -1204,6 +1253,6 @@
   </div>
 
   <!-- Custom JS -->
-  <script src="app.js?v=1.04.08"></script>
+  <script src="app.js?v=1.04.13"></script>
 </body>
 </html>
